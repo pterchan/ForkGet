@@ -1,0 +1,26 @@
+[package]
+name = "fg-diff"
+description = "Differential execution harness for corpus cases"
+default-run = "fg-diff"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+clap.workspace = true
+jiff.workspace = true
+# MongoDB command steps run against mongod in reference mode through
+# the official driver; the SQL sides keep sqlx.
+bson = { version = "2", default-features = false }
+mongodb.workspace = true
+rustls.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+
+[lints]
+workspace = true

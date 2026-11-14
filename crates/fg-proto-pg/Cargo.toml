@@ -1,0 +1,23 @@
+[package]
+name = "fg-proto-pg"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+base64.workspace = true
+fg-protocol-common = { path = "../fg-protocol-common", features = ["routing"] }
+fg-rewrite = { path = "../fg-rewrite" }
+hmac.workspace = true
+pbkdf2.workspace = true
+rand.workspace = true
+sha2.workspace = true
+subtle.workspace = true
+tokio.workspace = true
+tokio-rustls.workspace = true
+tracing.workspace = true

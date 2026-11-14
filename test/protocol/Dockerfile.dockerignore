@@ -1,0 +1,17 @@
+**
+!Cargo.toml
+!Cargo.lock
+!rust-toolchain.toml
+!crates/
+!crates/**
+!test/
+!test/differential/
+!test/differential/**
+!test/matrix/
+!test/matrix/**
+!test/protocol/
+!test/protocol/**
+**/.git
+**/.env
+**/.env.*
+**/__pycache__

@@ -1,0 +1,48 @@
+[
+  {
+    "id": "mysql_division_by_zero_returns_null",
+    "tags": ["smoke"],
+    "engines": ["mysql"],
+    "fixture": "orders_basic",
+    "steps": [
+      {
+        "sql": "SELECT 1 / 0",
+        "expect": { "kind": "rows", "order": "total" }
+      }
+    ]
+  },
+  {
+    "id": "mysql_error_does_not_abort_transaction",
+    "tags": ["smoke"],
+    "engines": ["mysql"],
+    "fixture": "orders_basic",
+    "steps": [
+      { "sql": "BEGIN", "expect": { "kind": "affected", "count": 0 } },
+      {
+        "sql": "SELECT id FROM no_such_table",
+        "expect": { "kind": "error", "class": "undefined_table" }
+      },
+      {
+        "sql": "SELECT 1 AS one",
+        "expect": { "kind": "rows", "order": "total" }
+      },
+      { "sql": "ROLLBACK", "expect": { "kind": "affected", "count": 0 } }
+    ]
+  },
+  {
+    "id": "mysql_update_counts_matched_rows",
+    "tags": ["smoke"],
+    "engines": ["mysql"],
+    "fixture": "orders_basic",
+    "steps": [
+      {
+        "sql": "UPDATE orders SET amount = 10.00 WHERE tenant_id = 1",
+        "expect": { "kind": "affected", "count": 5 }
+      },
+      {
+        "sql": "SELECT tenant_id, id, amount FROM orders WHERE tenant_id = 1 ORDER BY tenant_id, id",
+        "expect": { "kind": "rows", "order": "total" }
+      }
+    ]
+  }
+]

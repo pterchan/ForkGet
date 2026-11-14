@@ -1,0 +1,180 @@
+[
+  {
+    "id": "mongo_find_projection_sort_total",
+    "tags": ["smoke"],
+    "engines": ["mongodb"],
+    "fixture": "smoke_mongo",
+    "steps": [
+      {
+        "command": "find",
+        "collection": "orders",
+        "document": {
+          "filter": {},
+          "sort": {"tenant_id": 1, "_id": 1},
+          "projection": {"tenant_id": 1, "_id": 1}
+        },
+        "expect": {"kind": "rows", "order": "total"}
+      }
+    ]
+  },
+  {
+    "id": "mongo_find_filter_multiset_amounts",
+    "tags": ["smoke"],
+    "engines": ["mongodb"],
+    "fixture": "smoke_mongo",
+    "steps": [
+      {
+        "command": "find",
+        "collection": "orders",
+        "document": {
+          "filter": {"tenant_id": 1},
+          "projection": {"amount": 1, "_id": 0}
+        },
+        "expect": {"kind": "rows", "order": "multiset"}
+      }
+    ]
+  },
+  {
+    "id": "mongo_count_reply",
+    "tags": ["smoke"],
+    "engines": ["mongodb"],
+    "fixture": "smoke_mongo",
+    "steps": [
+      {
+        "command": "count",
+        "collection": "orders",
+        "document": {"query": {"tenant_id": 1}},
+        "expect": {"kind": "rows", "order": "total"}
+      }
+    ]
+  },
+  {
+    "id": "mongo_distinct_values",
+    "tags": ["smoke"],
+    "engines": ["mongodb"],
+    "fixture": "smoke_mongo",
+    "steps": [
+      {
+        "command": "distinct",
+        "collection": "orders",
+        "document": {"key": "note"},
+        "expect": {"kind": "rows", "order": "total"}
+      }
+    ]
+  },
+  {
+    "id": "mongo_aggregate_count_documents_shape",
+    "tags": ["smoke"],
+    "engines": ["mongodb"],
+    "fixture": "smoke_mongo",
+    "steps": [
+      {
+        "command": "aggregate",
+        "collection": "orders",
+        "document": {
+          "pipeline": [
+            {"$match": {"tenant_id": 1}},
+            {"$group": {"_id": 1, "n": {"$sum": 1}}}
+          ],
+          "cursor": {}
+        },
+        "expect": {"kind": "rows", "order": "total"}
+      }
+    ]
+  },
+  {
+    "id": "mongo_insert_affected_then_read",
+    "tags": ["smoke"],
+    "engines": ["mongodb"],
+    "fixture": "smoke_mongo",
+    "steps": [
+      {
+        "command": "insert",
+        "collection": "orders",
+        "document": {
+          "documents": [
+            {"_id": 50, "tenant_id": 1, "amount": 90.0, "note": "inserted"}
+          ],
+          "ordered": true
+        },
+        "expect": {"kind": "affected", "count": 1}
+      },
+      {
+        "command": "find",
+        "collection": "orders",
+        "document": {"filter": {"_id": 50}},
+        "expect": {"kind": "rows", "order": "total"}
+      }
+    ]
+  },
+  {
+    "id": "mongo_update_affected",
+    "tags": ["smoke"],
+    "engines": ["mongodb"],
+    "fixture": "smoke_mongo",
+    "steps": [
+      {
+        "command": "update",
+        "collection": "orders",
+        "document": {
+          "updates": [
+            {"q": {"note": "alpha-dup-amount"}, "u": {"$set": {"note": "renamed"}}, "multi": false}
+          ]
+        },
+        "expect": {"kind": "affected", "count": 1}
+      }
+    ]
+  },
+  {
+    "id": "mongo_delete_affected",
+    "tags": ["smoke"],
+    "engines": ["mongodb"],
+    "fixture": "smoke_mongo",
+    "steps": [
+      {
+        "command": "insert",
+        "collection": "orders",
+        "document": {
+          "documents": [{"_id": 60, "tenant_id": 3, "amount": 1.0, "note": "temp"}]
+        },
+        "expect": {"kind": "affected", "count": 1}
+      },
+      {
+        "command": "delete",
+        "collection": "orders",
+        "document": {"deletes": [{"q": {"_id": 60}, "limit": 1}]},
+        "expect": {"kind": "affected", "count": 1}
+      }
+    ]
+  },
+  {
+    "id": "mongo_duplicate_key_is_unique_violation",
+    "tags": ["smoke"],
+    "engines": ["mongodb"],
+    "fixture": "smoke_mongo",
+    "steps": [
+      {
+        "command": "insert",
+        "collection": "orders",
+        "document": {
+          "documents": [{"_id": 1, "tenant_id": 9, "amount": 1.0, "note": "conflict"}]
+        },
+        "expect": {"kind": "error", "class": "unique_violation"}
+      }
+    ]
+  },
+  {
+    "id": "mongo_unknown_operator_is_bad_value",
+    "tags": ["smoke"],
+    "engines": ["mongodb"],
+    "fixture": "smoke_mongo",
+    "steps": [
+      {
+        "command": "count",
+        "collection": "orders",
+        "document": {"query": {"amount": {"$badOperator": 1}}},
+        "expect": {"kind": "error", "class": "bad_value"}
+      }
+    ]
+  }
+]

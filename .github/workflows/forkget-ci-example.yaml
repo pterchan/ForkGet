@@ -1,0 +1,107 @@
+name: Forkget CI branch example
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: Trusted CI acceptance scenario
+        type: choice
+        required: true
+        default: success
+        options:
+          - success
+          - sql-failure
+          - wrong-ca
+          - hold-after-id
+
+permissions:
+  contents: read
+
+jobs:
+  branch-test:
+    if: ${{ vars.FG_CI_REPOSITORY == github.repository && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+    runs-on: [self-hosted, forkget-ephemeral, '${{ matrix.engine }}']
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - engine: mysql
+            endpoint_var: FG_CI_MYSQL_ENDPOINT
+            control_var: FG_CI_MYSQL_CONTROL
+            ca_var: FG_CI_MYSQL_CA
+          - engine: postgresql
+            endpoint_var: FG_CI_POSTGRES_ENDPOINT
+            control_var: FG_CI_POSTGRES_CONTROL
+            ca_var: FG_CI_POSTGRES_CA
+    env:
+      FG_CI_ENDPOINT: ${{ vars[matrix.endpoint_var] }}
+      FG_CONTROL_URL: ${{ vars[matrix.control_var] }}
+      FG_CI_FRONTEND_CA: ${{ vars[matrix.ca_var] }}
+      FG_CI_FORKGET: target/debug/forkget
+      FG_CI_PROBE: target/debug/fg-write-probe
+      SCENARIO: ${{ inputs.scenario }}
+    steps:
+      # v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Record trusted run provenance
+        env:
+          ENGINE: ${{ matrix.engine }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          case "$SCENARIO" in
+            success|sql-failure|wrong-ca|hold-after-id) ;;
+            *) exit 1 ;;
+          esac
+          printf 'Forkget acceptance: sha=%s run=%s attempt=%s engine=%s scenario=%s\n' \
+            "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$ENGINE" "$SCENARIO" | tee -a "$GITHUB_STEP_SUMMARY"
+      - run: cargo build --locked -p fg-cli -p fg-diff --bin forkget --bin fg-write-probe
+      - name: Mask the branch owner and frontend credentials
+        env:
+          FG_OWNER_TOKEN: ${{ secrets.FG_CI_OWNER_TOKEN }}
+          FG_CI_FRONTEND_PASSWORD: ${{ secrets.FG_CI_FRONTEND_PASSWORD }}
+        run: |
+          set +x
+          test -n "$FG_OWNER_TOKEN" && test -n "$FG_CI_FRONTEND_PASSWORD"
+          printf '::add-mask::%s\n' "$FG_OWNER_TOKEN" "$FG_CI_FRONTEND_PASSWORD"
+      - name: Fork a CI branch and publish its immutable ID
+        id: fork
+        env:
+          FG_OWNER_TOKEN: ${{ secrets.FG_CI_OWNER_TOKEN }}
+          ENGINE: ${{ matrix.engine }}
+        run: python3 test/p6/ci.py fork --name "ci-${ENGINE}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" --ttl 86400
+      - name: Wait for activation
+        env:
+          FG_OWNER_TOKEN: ${{ secrets.FG_CI_OWNER_TOKEN }}
+          BRANCH_ID: ${{ steps.fork.outputs.branch_id }}
+        run: python3 test/p6/ci.py wait --id "$BRANCH_ID"
+      - name: Run the verified TLS SQL smoke
+        if: ${{ inputs.scenario != 'hold-after-id' }}
+        env:
+          FG_CI_FRONTEND_USER: ${{ vars.FG_CI_FRONTEND_USER }}
+          FG_CI_FRONTEND_PASSWORD: ${{ secrets.FG_CI_FRONTEND_PASSWORD }}
+          BRANCH_NAME: ${{ steps.fork.outputs.branch_name }}
+          ENGINE: ${{ matrix.engine }}
+        run: python3 test/p6/ci.py smoke --engine "$ENGINE" --name "$BRANCH_NAME" --scenario "$SCENARIO"
+      - name: Hold the active branch for a cancellation or runner-loss drill
+        if: ${{ inputs.scenario == 'hold-after-id' }}
+        env:
+          BRANCH_ID: ${{ steps.fork.outputs.branch_id }}
+        run: |
+          printf 'Active branch ID %s is ready for the 180-second cancellation window.\n' "$BRANCH_ID"
+          sleep 180
+      - name: Drop the branch by immutable ID
+        if: ${{ always() && job.status == 'success' && steps.fork.outputs.branch_id != '' }}
+        env:
+          FG_OWNER_TOKEN: ${{ secrets.FG_CI_OWNER_TOKEN }}
+          BRANCH_ID: ${{ steps.fork.outputs.branch_id }}
+        run: python3 test/p6/ci.py drop --id "$BRANCH_ID"
+      - name: Retain the failed environment for investigation
+        if: ${{ always() && job.status != 'success' && steps.fork.outputs.branch_id != '' }}
+        env:
+          FG_OWNER_TOKEN: ${{ secrets.FG_CI_OWNER_TOKEN }}
+          BRANCH_ID: ${{ steps.fork.outputs.branch_id }}
+        run: python3 test/p6/ci.py retain --id "$BRANCH_ID"

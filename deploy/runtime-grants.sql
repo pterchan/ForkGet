@@ -1,0 +1,11 @@
+GRANT USAGE ON SCHEMA public TO fg_meta_runtime;
+GRANT SELECT ON generation,catalog_table,catalog_column,replay_deployment,policy_proxy_epoch,snapshot_job TO fg_meta_runtime;
+GRANT UPDATE(storage_preflight) ON snapshot_job TO fg_meta_runtime;
+GRANT SELECT,INSERT ON branch,audit_event,policy_version,policy_approval TO fg_meta_runtime;
+GRANT UPDATE(status,native_claimed,expires_at,lease_version,lease_renewed_at,lifecycle_phase,lifecycle_reason,lifecycle_updated_at,capture_active,capture_version,storage_preflight) ON branch TO fg_meta_runtime;
+GRANT UPDATE(audit_witness_version,audit_witness_incarnation,audit_witness_ready,audit_storage_invalidated,audit_storage_reclaim_started) ON branch TO fg_meta_runtime;
+GRANT SELECT,INSERT,UPDATE ON audit_attempt,audit_mongo_step TO fg_meta_runtime;
+GRANT UPDATE(state) ON policy_approval TO fg_meta_runtime;
+GRANT UPDATE(epoch) ON policy_proxy_epoch TO fg_meta_runtime;
+GRANT SELECT,INSERT,UPDATE ON generated_id_cursor,github_source,branch_budget_revision,budget_request,budget_grant,replay_job TO fg_meta_runtime;
+GRANT USAGE ON SEQUENCE branch_id_seq,audit_event_id_seq,policy_approval_id_seq,budget_request_id_seq,budget_grant_id_seq,replay_job_id_seq TO fg_meta_runtime;

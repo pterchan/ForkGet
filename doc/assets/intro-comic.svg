@@ -1,0 +1,374 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="495" viewBox="0 0 880 495" role="img" aria-labelledby="intro-title intro-description" fill="#17130E">
+  <title id="intro-title">Forkget comic: fork, test, diff, discard</title>
+  <desc id="intro-description">An animated comic about isolated data environments. Start from an immutable snapshot. Read-only branches share the base; writable branches copy the snapshot and become active after provisioning. Connect through the proxy with a MySQL or PostgreSQL client. Insert, update, and delete rows in the writable branch, inspect the net row diff, then drain sessions and discard the branch. The base stays unchanged. Each deployment serves one engine. The animation loops; reduced motion shows a static overview.</desc>
+  <style>
+    :root { --cycle: 50s; }
+    text { font-family: "Comic Sans MS", "Chalkboard SE", "Segoe Print", sans-serif; }
+    .comic { font-weight: 700; }
+    .mono { font-family: "SF Mono", Menlo, Consolas, monospace; }
+    .heading { font-size: 32px; font-weight: 700; }
+    .body { font-size: 22px; }
+    .label { font-size: 18px; font-weight: 700; }
+    .small { font-size: 14px; font-weight: 700; letter-spacing: 1px; }
+    .command { font-size: 18px; fill: #B8EEE1; }
+    .scene { opacity: 0; }
+    .scene-intro { opacity: 1; }
+    .motion { transform-origin: 0 0; }
+    .static-overview { display: none; }
+    /* One percent is 500 ms. Opaque scene wipes prevent overlapping text.
+       Every beat resets on the same 50-second clock. */
+    .scene-intro { animation: scene-intro var(--cycle) steps(1, end) infinite; }
+    .scene-base { animation: scene-base var(--cycle) steps(1, end) infinite; }
+    .scene-branches { animation: scene-branches var(--cycle) steps(1, end) infinite; }
+    .scene-client { animation: scene-client var(--cycle) steps(1, end) infinite; }
+    .scene-test { animation: scene-test var(--cycle) steps(1, end) infinite; }
+    .scene-diff { animation: scene-diff var(--cycle) steps(1, end) infinite; }
+    .scene-drop { animation: scene-drop var(--cycle) steps(1, end) infinite; }
+    .brand-pop { animation: brand-pop var(--cycle) linear infinite; }
+    .intro-fork { animation: intro-fork var(--cycle) linear infinite; }
+    .intro-test { animation: intro-test var(--cycle) linear infinite; }
+    .intro-diff { animation: intro-diff var(--cycle) linear infinite; }
+    .intro-drop { animation: intro-drop var(--cycle) linear infinite; }
+    .freeze { animation: freeze var(--cycle) linear infinite; }
+    .lock-in { animation: lock-in var(--cycle) linear infinite; }
+    .base-note { animation: base-note var(--cycle) linear infinite; }
+    .read-branch { animation: read-branch var(--cycle) linear infinite; }
+    .write-branch { animation: write-branch var(--cycle) linear infinite; }
+    .provisioning { animation: provisioning var(--cycle) linear infinite; }
+    .branch-ready { animation: branch-ready var(--cycle) linear infinite; }
+    .copy-row { animation: copy-row var(--cycle) linear infinite; }
+    .request-one { animation: request-one var(--cycle) linear infinite; }
+    .request-two { animation: request-two var(--cycle) linear infinite; }
+    .inserted-row { animation: inserted-row var(--cycle) linear infinite; }
+    .insert-label { animation: insert-label var(--cycle) linear infinite; }
+    .old-value { animation: old-value var(--cycle) linear infinite; }
+    .new-value { animation: new-value var(--cycle) linear infinite; }
+    .update-label { animation: update-label var(--cycle) linear infinite; }
+    .deleted-row { animation: deleted-row var(--cycle) linear infinite; }
+    .delete-mark { animation: delete-mark var(--cycle) linear infinite; }
+    .delete-label { animation: delete-label var(--cycle) linear infinite; }
+    .diff-insert { animation: diff-insert var(--cycle) linear infinite; }
+    .diff-update { animation: diff-update var(--cycle) linear infinite; }
+    .diff-delete { animation: diff-delete var(--cycle) linear infinite; }
+    .draining { animation: draining var(--cycle) linear infinite; }
+    .cleaned { animation: cleaned var(--cycle) linear infinite; }
+    .drop-target { animation: drop-target var(--cycle) linear infinite; }
+    .cleanup-puff { animation: cleanup-puff var(--cycle) linear infinite; }
+    .loop-progress { animation: loop-progress var(--cycle) linear infinite; }
+    .reveal-base { animation: reveal-base var(--cycle) linear infinite; }
+    .reveal-branches { animation: reveal-branches var(--cycle) linear infinite; }
+    .reveal-client { animation: reveal-client var(--cycle) linear infinite; }
+    .reveal-test { animation: reveal-test var(--cycle) linear infinite; }
+    .reveal-diff { animation: reveal-diff var(--cycle) linear infinite; }
+    .reveal-drop { animation: reveal-drop var(--cycle) linear infinite; }
+    .reveal-outro { animation: reveal-outro var(--cycle) linear infinite; }
+    .scene-outro { animation: scene-outro var(--cycle) steps(1, end) infinite; }
+    @keyframes reveal-base { 0%,10% {transform:translateX(-880px)} 11%,100% {transform:translateX(0px)} }
+    @keyframes reveal-branches { 0%,24% {transform:translateX(-880px)} 25%,100% {transform:translateX(0px)} }
+    @keyframes reveal-client { 0%,42% {transform:translateX(-880px)} 43%,100% {transform:translateX(0px)} }
+    @keyframes reveal-test { 0%,56% {transform:translateX(-880px)} 57%,100% {transform:translateX(0px)} }
+    @keyframes reveal-diff { 0%,72% {transform:translateX(-880px)} 73%,100% {transform:translateX(0px)} }
+    @keyframes reveal-drop { 0%,86% {transform:translateX(-880px)} 87%,100% {transform:translateX(0px)} }
+    @keyframes reveal-outro { 0%,96% {transform:translateX(-880px)} 97%,100% {transform:translateX(0px)} }
+    @keyframes scene-outro { 0% {opacity:0} 96% {opacity:1} 100% {opacity:1} }
+    @keyframes scene-intro { 0% {opacity:1} 11% {opacity:0} 96%,100% {opacity:1} }
+    @keyframes scene-base { 0% {opacity:0} 10% {opacity:1} 25%,100% {opacity:0} }
+    @keyframes scene-branches { 0% {opacity:0} 24% {opacity:1} 43%,100% {opacity:0} }
+    @keyframes scene-client { 0% {opacity:0} 42% {opacity:1} 57%,100% {opacity:0} }
+    @keyframes scene-test { 0% {opacity:0} 56% {opacity:1} 73%,100% {opacity:0} }
+    @keyframes scene-diff { 0% {opacity:0} 72% {opacity:1} 87%,100% {opacity:0} }
+    @keyframes scene-drop { 0% {opacity:0} 86% {opacity:1} 97%,100% {opacity:0} }
+    @keyframes brand-pop { 0% {transform:scale(1)} 0.8% {transform:scale(1.035)} 1.8%,100% {transform:scale(1)} }
+    @keyframes intro-fork { 0%,1% {opacity:0} 2%,98% {opacity:1} 99%,100% {opacity:0} }
+    @keyframes intro-test { 0%,2% {opacity:0} 3%,98% {opacity:1} 99%,100% {opacity:0} }
+    @keyframes intro-diff { 0%,3% {opacity:0} 4%,98% {opacity:1} 99%,100% {opacity:0} }
+    @keyframes intro-drop { 0%,4% {opacity:0} 5%,98% {opacity:1} 99%,100% {opacity:0} }
+    @keyframes freeze { 0%,12% {opacity:0} 14%,100% {opacity:1} }
+    @keyframes lock-in { 0%,14% {opacity:0;transform:translateY(-14px)} 16%,100% {opacity:1;transform:translateY(0px)} }
+    @keyframes base-note { 0%,16% {opacity:0} 18%,100% {opacity:1} }
+    @keyframes read-branch { 0%,26% {opacity:0} 28%,100% {opacity:1} }
+    @keyframes write-branch { 0%,29% {opacity:0} 31%,100% {opacity:1} }
+    @keyframes provisioning { 0%,38% {opacity:1} 39%,100% {opacity:0} }
+    @keyframes branch-ready { 0%,38% {opacity:0} 39%,100% {opacity:1} }
+    @keyframes copy-row { 0%,30% {opacity:0;transform:translateX(0px)} 31% {opacity:1;transform:translateX(0px)} 37% {opacity:1;transform:translateX(143px)} 38%,100% {opacity:0;transform:translateX(143px)} }
+    @keyframes request-one { 0%,45% {opacity:0;transform:translateX(0px)} 46% {opacity:1;transform:translateX(0px)} 48% {opacity:1;transform:translateX(73px)} 49%,50% {opacity:0;transform:translateX(73px)} 51% {opacity:0;transform:translateX(0px)} 52% {opacity:1;transform:translateX(0px)} 54% {opacity:1;transform:translateX(73px)} 55%,100% {opacity:0;transform:translateX(73px)} }
+    @keyframes request-two { 0%,48% {opacity:0;transform:translateX(0px)} 49% {opacity:1;transform:translateX(0px)} 51% {opacity:1;transform:translateX(73px)} 52%,53% {opacity:0;transform:translateX(73px)} 54% {opacity:0;transform:translateX(0px)} 55% {opacity:1;transform:translateX(0px)} 57% {opacity:1;transform:translateX(73px)} 58%,100% {opacity:0;transform:translateX(73px)} }
+    @keyframes inserted-row { 0%,57% {opacity:0;transform:translateY(0px)} 58%,68% {opacity:1;transform:translateY(0px)} 70%,100% {opacity:1;transform:translateY(-48px)} }
+    @keyframes insert-label { 0%,57% {opacity:0} 58%,100% {opacity:1} }
+    @keyframes old-value { 0%,63% {opacity:1} 64%,100% {opacity:0} }
+    @keyframes new-value { 0%,63% {opacity:0} 64%,100% {opacity:1} }
+    @keyframes update-label { 0%,63% {opacity:0} 64%,100% {opacity:1} }
+    @keyframes deleted-row { 0%,68% {opacity:1} 69%,100% {opacity:0} }
+    @keyframes delete-mark { 0%,65% {opacity:0} 66%,68% {opacity:1} 69%,100% {opacity:0} }
+    @keyframes delete-label { 0%,65% {opacity:0} 66%,100% {opacity:1} }
+    @keyframes diff-insert { 0%,74% {opacity:0} 75%,100% {opacity:1} }
+    @keyframes diff-update { 0%,77% {opacity:0} 78%,100% {opacity:1} }
+    @keyframes diff-delete { 0%,80% {opacity:0} 81%,100% {opacity:1} }
+    @keyframes draining { 0%,91% {opacity:1} 92%,100% {opacity:0} }
+    @keyframes cleaned { 0%,91% {opacity:0} 92%,100% {opacity:1} }
+    @keyframes drop-target { 0%,91% {opacity:1} 93%,100% {opacity:0} }
+    @keyframes cleanup-puff { 0%,91% {opacity:0} 92%,94% {opacity:1} 95%,100% {opacity:0} }
+    @keyframes loop-progress { 0% {transform:scaleX(0)} 100% {transform:scaleX(1)} }
+    @media (prefers-reduced-motion: reduce) {
+      .animated, .progress { display: none; }
+      .static-overview { display: inline; }
+      * { animation: none !important; }
+    }
+  </style>
+  <defs>
+    <clipPath id="reveal-base"><rect class="motion reveal-base" width="880" height="495"/></clipPath>
+    <clipPath id="reveal-branches"><rect class="motion reveal-branches" width="880" height="495"/></clipPath>
+    <clipPath id="reveal-client"><rect class="motion reveal-client" width="880" height="495"/></clipPath>
+    <clipPath id="reveal-test"><rect class="motion reveal-test" width="880" height="495"/></clipPath>
+    <clipPath id="reveal-diff"><rect class="motion reveal-diff" width="880" height="495"/></clipPath>
+    <clipPath id="reveal-drop"><rect class="motion reveal-drop" width="880" height="495"/></clipPath>
+    <clipPath id="reveal-outro"><rect class="motion reveal-outro" width="880" height="495"/></clipPath>
+    <pattern id="halftone" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(8)">
+      <circle cx="3" cy="3" r="1.5" fill="#17130E" opacity=".12"/>
+    </pattern>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 10 5 0 10Z" fill="#17130E"/>
+    </marker>
+    <path id="spark" d="M0 -12C2 -4 4 -2 12 0C4 2 2 4 0 12C-2 4 -4 2 -12 0C-4 -2 -2 -4 0 -12Z" fill="#FF5964" stroke="#17130E" stroke-width="2.5" stroke-linejoin="round"/>
+    <g id="database" stroke="#17130E" stroke-width="4" stroke-linejoin="round">
+      <path d="M8 32A82 25 0 0 1 172 32V124A82 25 0 0 1 8 124Z" fill="#0E9C94"/>
+      <path d="M8 78A82 25 0 0 0 172 78M8 106A82 25 0 0 0 172 106" fill="none" opacity=".32"/>
+      <ellipse cx="90" cy="32" rx="82" ry="25" fill="#A6E2D4"/>
+    </g>
+    <g id="lock" stroke="#17130E" stroke-width="4" stroke-linecap="round">
+      <path d="M-10 0V-10A10 10 0 0 1 10-10V0" fill="none"/>
+      <rect x="-18" y="-1" width="36" height="29" rx="7" fill="#F1BE59"/>
+      <path d="M0 10V17"/>
+    </g>
+    <g id="row-card">
+      <rect width="254" height="38" rx="9" fill="#FFFDF6" stroke="#17130E" stroke-width="2"/>
+      <path d="M56 8V30" stroke="#D8CDBB" stroke-width="2"/>
+    </g>
+    <g id="base-table">
+      <rect width="286" height="218" rx="16" fill="#E6F2EE" stroke="#17130E" stroke-width="4"/>
+      <text class="label" x="18" y="33">ID</text><text class="label" x="88" y="33">VALUE</text>
+      <use href="#row-card" x="16" y="50"/><use href="#row-card" x="16" y="98"/><use href="#row-card" x="16" y="146"/>
+      <g class="mono" font-size="20">
+        <text x="32" y="76">1</text><text x="88" y="76">Alpha</text>
+        <text x="32" y="124">2</text><text x="88" y="124">Beta</text>
+        <text x="32" y="172">3</text><text x="88" y="172">Gamma</text>
+      </g>
+    </g>
+    <g id="brand">
+      <path d="M-286-70 269-87 286 77-268 91Z" fill="#17130E"/>
+      <path d="M-291-79 264-96 281 68-273 82Z" fill="#0E9C94" stroke="#17130E" stroke-width="5" stroke-linejoin="round"/>
+      <text class="comic" y="28" text-anchor="middle" font-size="94" fill="#FFFDF6" stroke="#17130E" stroke-width="2" paint-order="stroke">Forkget</text>
+      <g transform="translate(268 -73) rotate(9)">
+        <path d="M0-48 13-28 38-35 33-11 52 4 29 14 28 41 5 30-15 48-22 22-48 21-35-3-47-26-19-25Z" fill="#FF5964" stroke="#17130E" stroke-width="4"/>
+        <text class="comic" y="8" text-anchor="middle" font-size="23" fill="#FFFDF6">FORK!</text>
+      </g>
+    </g>
+  </defs>
+
+  <!-- The paper and frame persist across cuts so transitions never reveal a blank canvas. -->
+  <rect width="880" height="495" fill="#FBF3E4"/>
+  <rect x="16" y="18" width="852" height="465" rx="20" fill="#17130E"/>
+  <rect x="12" y="12" width="852" height="465" rx="20" fill="#FFFDF6" stroke="#17130E" stroke-width="4"/>
+  <g class="animated">
+    <!-- 0–5.5 s, returning at 48.5 s: the same artwork closes and opens the loop. -->
+    <g id="intro-content" class="scene scene-intro">
+      <rect x="31" y="28" width="818" height="419" fill="#FFFDF6"/>
+        <g transform="translate(0 -32)">
+      <text class="label" x="440" y="105" text-anchor="middle" letter-spacing="2">YOUR NEXT EXPERIMENT STARTS HERE</text>
+      <g transform="translate(104 152)"><use href="#spark"/></g>
+      <g transform="translate(796 388)"><use href="#spark"/></g>
+      <g transform="translate(429 230)"><g class="motion brand-pop"><use href="#brand"/></g></g>
+      <g class="body" text-anchor="middle">
+        <g class="intro-fork"><rect x="113" y="344" width="141" height="43" rx="13" fill="#CFECE2" stroke="#17130E" stroke-width="2"/><text x="183" y="373">Fork.</text></g>
+        <g class="intro-test"><rect x="276" y="344" width="141" height="43" rx="13" fill="#F9DEA5" stroke="#17130E" stroke-width="2"/><text x="346" y="373">Test.</text></g>
+        <g class="intro-diff"><rect x="439" y="344" width="141" height="43" rx="13" fill="#CFECE2" stroke="#17130E" stroke-width="2"/><text x="509" y="373">Diff.</text></g>
+        <g class="intro-drop"><rect x="602" y="344" width="165" height="43" rx="13" fill="#FFD5D5" stroke="#17130E" stroke-width="2"/><text x="684" y="373">Discard.</text></g>
+      </g>
+      <text x="440" y="423" text-anchor="middle" font-size="22">Data environments for trying things out.</text>
+        </g>
+    </g>
+
+    <!-- 5.5–12.5 s: a snapshot stays pinned while branch data changes later. -->
+    <g class="scene scene-base" clip-path="url(#reveal-base)">
+      <rect x="31" y="28" width="818" height="419" fill="#FFFDF6"/>
+        <g transform="translate(0 -32)">
+      <text class="heading" x="440" y="110" text-anchor="middle">Start from a pinned snapshot.</text>      <rect x="48" y="76" width="110" height="54" fill="url(#halftone)"/>
+      <g transform="translate(111 150)">
+        <rect class="freeze" x="-14" y="-8" width="268" height="230" rx="24" fill="#E5F3F8" stroke="#86BFCB" stroke-width="3"/>
+        <g transform="translate(24 21) scale(1.1)"><use href="#database"/></g>
+        <path class="freeze" d="M7 31 58 5M8 57 84 18M187 197 230 173" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round"/>
+        <g transform="translate(199 163)"><g class="motion lock-in"><use href="#lock"/></g></g>
+      </g>
+      <g class="base-note">
+        <path d="M416 181H775Q795 181 795 201V318Q795 338 775 338H416Q396 338 396 318V268L369 253 396 239V201Q396 181 416 181Z" fill="#FBF3E4" stroke="#17130E" stroke-width="3"/>
+        <text class="body" x="433" y="223">One fixed starting point.</text>
+        <text x="433" y="267" font-size="22">Branches stay pinned.</text>
+        <text x="433" y="305" font-size="22" fill="#08766D" font-weight="700">The base stays unchanged.</text>
+      </g>
+      <rect x="143" y="392" width="178" height="34" rx="17" fill="#17130E"/>
+      <text class="label" x="232" y="415" text-anchor="middle" fill="#FFFDF6">IMMUTABLE BASE</text>
+        </g>
+    </g>
+
+    <!-- 12.5–21.5 s: only read-only branches share the base without copying it. -->
+    <g class="scene scene-branches" clip-path="url(#reveal-branches)">
+      <rect x="31" y="28" width="818" height="419" fill="#FFFDF6"/>
+        <g transform="translate(0 -32)">
+      <text class="heading" x="440" y="110" text-anchor="middle">Choose your branch.</text>      <rect x="736" y="78" width="100" height="48" fill="url(#halftone)"/>
+      <g transform="translate(65 190)"><use href="#database"/></g>
+      <text class="label" x="155" y="368" text-anchor="middle">PINNED SNAPSHOT</text>
+      <path d="M246 262H298M298 194V321" fill="none" stroke="#17130E" stroke-width="3"/>
+      <path d="M298 194H388" stroke="#17130E" stroke-width="3" marker-end="url(#arrow)"/>
+      <path d="M298 321H388" stroke="#17130E" stroke-width="3" marker-end="url(#arrow)"/>
+      <g class="read-branch">
+        <rect x="407" y="147" width="387" height="103" rx="16" fill="#E6F2EE" stroke="#17130E" stroke-width="3"/>
+        <text class="body" x="430" y="184">Read-only: shared base</text>
+        <text x="430" y="221" font-size="22">Metadata only. No data copy.</text>
+      </g>
+      <g class="write-branch">
+        <rect x="407" y="272" width="387" height="110" rx="16" fill="#FBE7BC" stroke="#17130E" stroke-width="3"/>
+        <text class="body" x="430" y="310">Writable: snapshot copy</text>
+        <g class="provisioning"><text x="430" y="350" font-size="22">Copying snapshot...</text></g>
+        <g class="branch-ready"><circle cx="443" cy="346" r="13" fill="#0E9C94"/><path d="m437 346 4 4 8-9" fill="none" stroke="#FFFDF6" stroke-width="3"/><text x="466" y="354" font-size="22" font-weight="700">Active. Ready to test.</text></g>
+      </g>
+      <g class="motion copy-row" fill="#F1BE59" stroke="#17130E" stroke-width="2"><rect x="248" y="311" width="30" height="17" rx="4"/><path d="M257 316V323M265 316V323"/></g>
+      <rect x="95" y="400" width="690" height="40" rx="10" fill="#17130E"/>
+      <text class="mono command" x="116" y="427">$ forkget fork dev-alice --write</text>
+        </g>
+    </g>
+
+    <!-- 21.5–28.5 s: one native engine per deployment, selected by the operator. -->
+    <g class="scene scene-client" clip-path="url(#reveal-client)">
+      <rect x="31" y="28" width="818" height="419" fill="#FFFDF6"/>
+        <g transform="translate(0 -32)">
+      <text class="heading" x="440" y="110" text-anchor="middle">Use your SQL client.</text>      <rect x="69" y="182" width="207" height="143" rx="13" fill="#FBF3E4" stroke="#17130E" stroke-width="4"/>
+      <path d="M71 216H274" stroke="#17130E" stroke-width="3"/>
+      <g fill="#0E9C94"><circle cx="88" cy="199" r="4"/><circle cx="103" cy="199" r="4"/><circle cx="118" cy="199" r="4"/></g>
+      <text class="mono" x="91" y="256" font-size="23">SELECT ...</text>
+      <path d="M93 279H218M93 297H176" stroke="#C3B9A6" stroke-width="6" stroke-linecap="round"/>
+      <text class="label" x="172" y="357" text-anchor="middle">YOUR CLIENT</text>
+      <path d="M289 257H375" stroke="#17130E" stroke-width="4" marker-end="url(#arrow)"/>
+      <path d="M515 257H606" stroke="#17130E" stroke-width="4" marker-end="url(#arrow)"/>
+      <circle class="motion request-one" cx="292" cy="257" r="7" fill="#FF5964" stroke="#17130E" stroke-width="2"/>
+      <circle class="motion request-two" cx="519" cy="257" r="7" fill="#FF5964" stroke="#17130E" stroke-width="2"/>
+      <path d="M447 187 506 222V291L447 325 388 291V222Z" fill="#17130E"/>
+      <text class="comic" x="447" y="264" text-anchor="middle" font-size="25" fill="#FFFDF6">proxy</text>
+      <g transform="translate(625 184)"><use href="#database"/></g>
+      <text class="label" x="715" y="357" text-anchor="middle">dev-alice</text>
+      <rect x="267" y="138" width="347" height="32" rx="16" fill="#CFECE2"/>
+      <text class="label" x="440" y="160" text-anchor="middle">MySQL or PostgreSQL</text>
+      <rect x="202" y="397" width="476" height="40" rx="12" fill="#FBF3E4" stroke="#17130E" stroke-width="2"/>
+      <text class="mono" x="440" y="424" text-anchor="middle" font-size="22">database = dev-alice</text>
+        </g>
+    </g>
+
+    <!-- 28.5–36.5 s: the same three net changes are carried into the diff. -->
+    <g class="scene scene-test" clip-path="url(#reveal-test)">
+      <rect x="31" y="28" width="818" height="419" fill="#FFFDF6"/>
+        <g transform="translate(0 -32)">
+      <text class="heading" x="440" y="110" text-anchor="middle">Test changes. Keep the base.</text>      <text class="label" x="208" y="153" text-anchor="middle">BASE / UNCHANGED</text>
+      <text class="label" x="669" y="153" text-anchor="middle">dev-alice / WRITABLE</text>
+      <use href="#base-table" x="65" y="171"/>
+      <rect x="526" y="171" width="286" height="238" rx="16" fill="#FBF3E4" stroke="#17130E" stroke-width="4"/>
+      <text class="label" x="544" y="204">ID</text><text class="label" x="614" y="204">VALUE</text>
+      <use href="#row-card" x="542" y="221"/>
+      <text class="mono" x="558" y="247" font-size="20">1</text><text class="mono" x="614" y="247" font-size="20">Alpha</text>
+      <g class="old-value"><use href="#row-card" x="542" y="269"/><text class="mono" x="558" y="295" font-size="20">2</text><text class="mono" x="614" y="295" font-size="20">Beta</text></g>
+      <g class="new-value"><rect x="542" y="269" width="254" height="38" rx="9" fill="#F9DEA5" stroke="#17130E" stroke-width="2"/><text class="mono" x="558" y="295" font-size="20">2</text><text class="mono" x="614" y="295" font-size="20">Beta*</text><text class="body" x="769" y="295">~</text></g>
+      <g class="deleted-row"><use href="#row-card" x="542" y="317"/><text class="mono" x="558" y="343" font-size="20">3</text><text class="mono" x="614" y="343" font-size="20">Gamma</text></g>
+      <g class="delete-mark"><rect x="542" y="317" width="254" height="38" rx="9" fill="#FF5964" opacity=".22"/><path d="M554 336H782" stroke="#C03842" stroke-width="3"/></g>
+      <g class="inserted-row"><rect x="542" y="365" width="254" height="38" rx="9" fill="#CFECE2" stroke="#17130E" stroke-width="2"/><text class="mono" x="558" y="391" font-size="20">4</text><text class="mono" x="614" y="391" font-size="20">Delta</text><text class="body" x="769" y="391">+</text></g>
+      <g transform="translate(440 261)"><use href="#lock"/></g>
+      <text class="small" x="440" y="320" text-anchor="middle">ISOLATED</text>
+      <g class="label" text-anchor="middle">
+        <text class="insert-label" x="580" y="432" fill="#08766D">+ INSERT</text>
+        <text class="update-label" x="690" y="432" fill="#885B13">~ UPDATE</text>
+        <text class="delete-label" x="795" y="432" fill="#BA303A">− DELETE</text>
+      </g>
+      <text x="208" y="432" text-anchor="middle" font-size="22">Same rows. Same values.</text>
+        </g>
+    </g>
+
+    <!-- 36.5–43.5 s: net row changes, not a query log or a merge operation. -->
+    <g class="scene scene-diff" clip-path="url(#reveal-diff)">
+      <rect x="31" y="28" width="818" height="419" fill="#FFFDF6"/>
+        <g transform="translate(0 -32)">
+      <text class="heading" x="440" y="110" text-anchor="middle">See what changed.</text>      <text x="440" y="148" text-anchor="middle" font-size="22">dev-alice compared with its pinned snapshot</text>
+      <g class="diff-insert">
+        <rect x="54" y="180" width="242" height="174" rx="16" fill="#CFECE2" stroke="#17130E" stroke-width="3"/>
+        <text class="comic" x="78" y="229" font-size="40">+1</text><text class="body" x="147" y="225">Inserted</text>
+        <path d="M73 248H277" stroke="#17130E" opacity=".2"/>
+        <text class="mono" x="78" y="284" font-size="20">ID 4</text><text class="mono" x="78" y="323" font-size="22">Delta</text>
+      </g>
+      <g class="diff-update">
+        <rect x="319" y="180" width="242" height="174" rx="16" fill="#F9DEA5" stroke="#17130E" stroke-width="3"/>
+        <text class="comic" x="343" y="229" font-size="40">~1</text><text class="body" x="412" y="225">Updated</text>
+        <path d="M338 248H542" stroke="#17130E" opacity=".2"/>
+        <text class="mono" x="343" y="284" font-size="20">ID 2</text><text class="mono" x="343" y="323" font-size="22">Beta → Beta*</text>
+      </g>
+      <g class="diff-delete">
+        <rect x="584" y="180" width="242" height="174" rx="16" fill="#FFD5D5" stroke="#17130E" stroke-width="3"/>
+        <text class="comic" x="608" y="229" font-size="40">−1</text><text class="body" x="677" y="225">Deleted</text>
+        <path d="M603 248H807" stroke="#17130E" opacity=".2"/>
+        <text class="mono" x="608" y="284" font-size="20">ID 3</text><text class="mono" x="608" y="323" font-size="22">Gamma</text>
+      </g>
+      <rect x="54" y="397" width="772" height="43" rx="11" fill="#17130E"/>
+      <text class="mono command" x="73" y="425">$ forkget diff dev-alice --output changes.json</text>
+        </g>
+    </g>
+
+    <!-- 43.5–48.5 s: drain before cleanup; the final 1.5 s returns to the title. -->
+    <g class="scene scene-drop" clip-path="url(#reveal-drop)">
+      <rect x="31" y="28" width="818" height="419" fill="#FFFDF6"/>
+        <g transform="translate(0 -32)">
+      <text class="heading" x="440" y="110" text-anchor="middle">Discard the branch. Keep the base.</text>      <g transform="translate(84 183)"><use href="#database"/><g transform="translate(154 123)"><use href="#lock"/></g></g>
+      <text class="label" x="174" y="373" text-anchor="middle">BASE / UNCHANGED</text>
+      <path d="M326 237H496" fill="none" stroke="#D8CDBB" stroke-width="3" stroke-dasharray="7 7"/>
+      <g class="draining"><rect x="291" y="265" width="240" height="41" rx="12" fill="#F9DEA5" stroke="#17130E" stroke-width="2"/><text class="label" x="411" y="292" text-anchor="middle">Draining sessions...</text></g>
+      <g class="cleaned"><rect x="291" y="265" width="240" height="41" rx="12" fill="#CFECE2" stroke="#17130E" stroke-width="2"/><text class="label" x="411" y="292" text-anchor="middle">Cleaned up.</text></g>
+      <g class="drop-target"><g transform="translate(590 183)"><use href="#database"/></g><text class="label" x="680" y="373" text-anchor="middle">dev-alice</text></g>
+      <g class="motion cleanup-puff" transform="translate(680 252)">
+        <path d="M-61 14C-94 5-82-43-51-39-51-79 8-82 20-49 57-73 91-32 68-6 102 20 65 62 36 48 12 78-24 61-33 43-65 67-94 38-61 14Z" fill="#FFFDF6" stroke="#17130E" stroke-width="4"/>
+        <text class="comic" x="0" y="9" text-anchor="middle" font-size="31" fill="#BA303A">POOF!</text>
+      </g>
+      <rect x="95" y="400" width="690" height="40" rx="10" fill="#17130E"/>
+      <text class="mono command" x="116" y="427">$ forkget drop dev-alice</text>
+        </g>
+    </g>
+
+    <!-- The closing copy sits above the last scene to preserve wipe direction. -->
+    <g class="scene scene-outro" clip-path="url(#reveal-outro)"><use href="#intro-content"/></g>
+    <path d="M34 450H842" stroke="#D8CDBB"/>
+    <g class="small" text-anchor="middle" fill="#645C4F">
+      <text x="93" y="468">01 / IDEA</text><text x="208" y="468">02 / BASE</text><text x="323" y="468">03 / FORK</text><text x="438" y="468">04 / CONNECT</text><text x="553" y="468">05 / TEST</text><text x="668" y="468">06 / DIFF</text><text x="783" y="468">07 / DROP</text>
+    </g>
+    <g fill="#0E9C94">
+      <rect class="scene scene-intro" x="49" y="448" width="88" height="4" rx="2"/>
+      <rect class="scene scene-base" x="164" y="448" width="88" height="4" rx="2"/>
+      <rect class="scene scene-branches" x="279" y="448" width="88" height="4" rx="2"/>
+      <rect class="scene scene-client" x="394" y="448" width="88" height="4" rx="2"/>
+      <rect class="scene scene-test" x="509" y="448" width="88" height="4" rx="2"/>
+      <rect class="scene scene-diff" x="624" y="448" width="88" height="4" rx="2"/>
+      <rect class="scene scene-drop" x="739" y="448" width="88" height="4" rx="2"/>
+    </g>
+  </g>
+
+  <!-- Reduced-motion readers get the whole explanation, with no animated descendants. -->
+  <g class="static-overview">
+    <text class="comic" x="440" y="121" text-anchor="middle" font-size="46">Fork. Test. Diff. Discard.</text>
+    <g transform="translate(69 172)"><use href="#database"/><g transform="translate(150 123)"><use href="#lock"/></g></g>
+    <text class="label" x="159" y="356" text-anchor="middle">PINNED SNAPSHOT</text>
+    <path d="M261 252H310" stroke="#17130E" stroke-width="3" marker-end="url(#arrow)"/>
+    <rect x="327" y="159" width="474" height="98" rx="14" fill="#E6F2EE" stroke="#17130E" stroke-width="3"/>
+    <text class="body" x="348" y="197">Read-only: shared base</text><text x="348" y="234" font-size="22">Writable: snapshot copy</text>
+    <text class="body" x="332" y="298">SQL client → test → diff → discard</text>
+    <text x="332" y="337" font-size="22">MySQL or PostgreSQL, via the proxy.</text>
+    <text x="332" y="376" font-size="22">Drain sessions, then clean up.</text>
+    <rect x="191" y="407" width="498" height="37" rx="18" fill="#17130E"/>
+    <text class="body" x="440" y="434" text-anchor="middle" fill="#FFFDF6">The base stays unchanged.</text>
+  </g>
+  <g class="progress">
+    <rect x="31" y="487" width="818" height="4" rx="2" fill="#D8CDBB"/>
+    <g transform="translate(31 487)"><rect class="motion loop-progress" width="818" height="4" rx="2" fill="#0E9C94"/></g>
+  </g>
+</svg>

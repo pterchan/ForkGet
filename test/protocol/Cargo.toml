@@ -1,0 +1,23 @@
+[package]
+name = "fg-protocol-fixture"
+description = "Loopback-only caller for Forkget wire protocol tests"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+fg-protocol-common = { path = "../../crates/fg-protocol-common" }
+fg-proto-mongo = { path = "../../crates/fg-proto-mongo" }
+fg-proto-mysql = { path = "../../crates/fg-proto-mysql" }
+fg-proto-pg = { path = "../../crates/fg-proto-pg" }
+rustls.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tokio-rustls.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[lints]
+workspace = true

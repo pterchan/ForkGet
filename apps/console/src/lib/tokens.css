@@ -1,0 +1,57 @@
+/* Shift design system 1.0. Shared Console colors, spacing and typography. */
+:root {
+  --surface-page: #fff;
+  --surface-panel: #fff;
+  --surface-subtle: #f7f9f8;
+  --text-primary: #1f2933;
+  --text-secondary: #5b6472;
+  --border-default: #dce2df;
+  --border-control: #7c8981;
+  /* Pistachio: warm, low-saturation identity; use the dark shade for text. */
+  --brand-green: #a8c98c;
+  --brand-orange: #f97316;
+  --brand-purple: #8b5cf6;
+  --tier-archive-accent: var(--brand-orange);
+  --tier-archive-text: #9a3412;
+  --tier-archive-bg: #fff7ed;
+  --tier-standard-accent: var(--brand-green);
+  --tier-standard-text: #4f663e;
+  --tier-standard-bg: #f1f6eb;
+  --tier-performance-accent: var(--brand-purple);
+  --tier-performance-text: #6d28d9;
+  --tier-performance-bg: #f5f3ff;
+  --surface-selected: #e3ecd9;
+  --data-unique: #60784e;
+  --data-payload: #405333;
+  --action-primary: #4f663e;
+  --action-primary-hover: #405333;
+  --status-success: #53664a;
+  --status-success-bg: #f1f6eb;
+  --status-warning: #854d0e;
+  --status-warning-bg: #fff8eb;
+  --status-danger: #b42318;
+  --status-danger-bg: #fff2f0;
+  --status-neutral: #526176;
+  --status-neutral-bg: #eef1f0;
+  --focus-ring: #4f663e;
+  --font-body:
+    Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+  --text-body: 13px;
+  --text-table: 12px;
+  --text-title: 18px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --radius-control: 4px;
+  --radius-panel: 6px;
+  --height-header: 48px;
+  --height-row: 32px;
+  --height-control: 28px;
+  --width-nav: 232px;
+  --width-context: 320px;
+  --motion-fast: 120ms;
+}

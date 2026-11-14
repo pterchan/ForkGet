@@ -1,0 +1,17 @@
+.git
+target
+**/target
+dev-doc
+test/reports
+**/node_modules
+**/.svelte-kit
+**/build
+**/artifacts
+**/test-results
+**/.env
+**/.env.*
+**/__pycache__
+deploy/private
+deploy/operator.env
+deploy/work
+.forkget-state

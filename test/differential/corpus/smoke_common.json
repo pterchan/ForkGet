@@ -1,0 +1,357 @@
+[
+  {
+    "id": "select_projection_ordered_total",
+    "tags": ["smoke"],
+    "engines": ["mysql", "postgresql"],
+    "fixture": "orders_basic",
+    "steps": [
+      {
+        "sql": "SELECT tenant_id, id FROM orders ORDER BY tenant_id, id",
+        "expect": { "kind": "rows", "order": "total" }
+      }
+    ]
+  },
+  {
+    "id": "select_ordering_desc_with_secondary_keys",
+    "tags": ["smoke"],
+    "engines": ["mysql", "postgresql"],
+    "fixture": "orders_basic",
+    "steps": [
+      {
+        "sql": "SELECT tenant_id, id FROM orders ORDER BY amount DESC, tenant_id, id",
+        "expect": { "kind": "rows", "order": "total" }
+      }
+    ]
+  },
+  {
+    "id": "select_limit_offset_window",
+    "tags": ["smoke"],
+    "engines": ["mysql", "postgresql"],
+    "fixture": "orders_basic",
+    "steps": [
+      {
+        "sql": "SELECT tenant_id, id FROM orders ORDER BY tenant_id, id LIMIT 3 OFFSET 1",
+        "expect": { "kind": "rows", "order": "total" }
+      }
+    ]
+  },
+  {
+    "id": "select_expression_arithmetic",
+    "tags": ["smoke"],
+    "engines": ["mysql", "postgresql"],
+    "fixture": "orders_basic",
+    "steps": [
+      {
+        "sql": "SELECT tenant_id, id, amount * 2 FROM orders WHERE tenant_id = 1 ORDER BY tenant_id, id",
+        "expect": { "kind": "rows", "order": "total" }
+      }
+    ]
+  },
+  {
+    "id": "select_case_expression",
+    "tags": ["smoke"],
+    "engines": ["mysql", "postgresql"],
+    "fixture": "orders_basic",
+    "steps": [
+      {
+        "sql": "SELECT tenant_id, id, CASE WHEN amount >= 30 THEN 'high' ELSE 'low' END AS band FROM orders ORDER BY tenant_id, id",
+        "expect": { "kind": "rows", "order": "total" }
+      }
+    ]
+  },
+  {
+    "id": "select_where_between_excludes_null",
+    "tags": ["smoke"],
+    "engines": ["mysql", "postgresql"],
+    "fixture": "orders_basic",
+    "setup": [
+      "UPDATE orders SET amount = NULL WHERE tenant_id = 1 AND id = 5"
+    ],
+    "steps": [
+      {
+        "sql": "SELECT tenant_id, id FROM orders WHERE amount BETWEEN 10 AND 30 ORDER BY tenant_id, id",
+        "expect": { "kind": "rows", "order": "total" }
+      }
+    ]
+  },
+  {
+    "id": "select_aggregate_group_by",
+    "tags": ["smoke"],
+    "engines": ["mysql", "postgresql"],
+    "fixture": "orders_basic",
+    "steps": [
+      {
+        "sql": "SELECT tenant_id, COUNT(*) AS row_count, SUM(amount) AS total_amount FROM orders GROUP BY tenant_id ORDER BY tenant_id",
+        "expect": { "kind": "rows", "order": "total" }
+      }
+    ]
+  },
+  {
+    "id": "select_distinct_values",
+    "tags": ["smoke"],
+    "engines": ["mysql", "postgresql"],
+    "fixture": "orders_basic",
+    "steps": [
+      {
+        "sql": "SELECT DISTINCT amount FROM orders ORDER BY amount",
+        "expect": { "kind": "rows", "order": "total" }
+      }
+    ]
+  },
+  {
+    "id": "select_duplicates_multiset",
+    "tags": ["smoke"],
+    "engines": ["mysql", "postgresql"],
+    "fixture": "orders_basic",
+    "steps": [
+      {
+        "sql": "SELECT amount FROM orders",
+        "expect": { "kind": "rows", "order": "multiset" }
+      }
+    ]
+  },
+  {
+    "id": "select_null_amount_boundary",
+    "tags": ["smoke"],
+    "engines": ["mysql", "postgresql"],
+    "fixture": "orders_basic",
+    "setup": [
+      "UPDATE orders SET amount = NULL WHERE tenant_id = 1 AND id = 2"
+    ],
+    "steps": [
+      {
+        "sql": "SELECT tenant_id, id, amount FROM orders ORDER BY tenant_id, id",
+        "expect": { "kind": "rows", "order": "total" }
+      }
+    ]
+  },
+  {
+    "id": "select_empty_string_versus_null",
+    "tags": ["smoke"],
+    "engines": ["mysql", "postgresql"],
+    "fixture": "orders_basic",
+    "setup": [
+      "INSERT INTO orders (tenant_id, id, amount, note) VALUES (3, 1, 1.00, '')",
+      "INSERT INTO orders (tenant_id, id, amount, note) VALUES (3, 2, 2.00, NULL)"
+    ],
+    "steps": [
+      {
+        "sql": "SELECT tenant_id, id, note FROM orders WHERE tenant_id = 3 ORDER BY tenant_id, id",
+        "expect": { "kind": "rows", "order": "total" }
+      }
+    ]
+  },
+  {
+    "id": "select_composite_key_lookup",
+    "tags": ["smoke"],
+    "engines": ["mysql", "postgresql"],
+    "fixture": "orders_basic",
+    "steps": [
+      {
+        "sql": "SELECT amount, note FROM orders WHERE tenant_id = 2 AND id = 2",
+        "expect": { "kind": "rows", "order": "total" }
+      }
+    ]
+  },
+  {
+    "id": "select_empty_result_set",
+    "tags": ["smoke"],
+    "engines": ["mysql", "postgresql"],
+    "fixture": "orders_basic",
+    "steps": [
+      {
+        "sql": "SELECT tenant_id, id, note FROM orders WHERE tenant_id = 99 ORDER BY tenant_id, id",
+        "expect": { "kind": "rows", "order": "total" }
+      }
+    ]
+  },
+  {
+    "id": "select_quoted_string_literal",
+    "tags": ["smoke"],
+    "engines": ["mysql", "postgresql"],
+    "fixture": "orders_basic",
+    "setup": [
+      "INSERT INTO orders (tenant_id, id, amount, note) VALUES (3, 3, 3.00, 'O''Brien')"
+    ],
+    "steps": [
+      {
+        "sql": "SELECT tenant_id, id, note FROM orders WHERE tenant_id = 3 AND id = 3 ORDER BY tenant_id, id",
+        "expect": { "kind": "rows", "order": "total" }
+      }
+    ]
+  },
+  {
+    "id": "insert_visible_with_affected_count",
+    "tags": ["smoke"],
+    "engines": ["mysql", "postgresql"],
+    "fixture": "orders_basic",
+    "steps": [
+      {
+        "sql": "INSERT INTO orders (tenant_id, id, amount, note) VALUES (4, 1, 7.50, 'golf')",
+        "expect": { "kind": "affected", "count": 1 }
+      },
+      {
+        "sql": "SELECT tenant_id, id FROM orders WHERE tenant_id = 4 ORDER BY tenant_id, id",
+        "expect": { "kind": "rows", "order": "total" }
+      }
+    ]
+  },
+  {
+    "id": "update_changed_rows_affected",
+    "tags": ["smoke"],
+    "engines": ["mysql", "postgresql"],
+    "fixture": "orders_basic",
+    "steps": [
+      {
+        "sql": "UPDATE orders SET note = 'bulk' WHERE tenant_id = 1",
+        "expect": { "kind": "affected", "count": 5 }
+      },
+      {
+        "sql": "SELECT tenant_id, id, note FROM orders WHERE tenant_id = 1 ORDER BY tenant_id, id",
+        "expect": { "kind": "rows", "order": "total" }
+      }
+    ]
+  },
+  {
+    "id": "update_no_match_affected_zero",
+    "tags": ["smoke"],
+    "engines": ["mysql", "postgresql"],
+    "fixture": "orders_basic",
+    "steps": [
+      {
+        "sql": "UPDATE orders SET note = 'ghost' WHERE tenant_id = 99",
+        "expect": { "kind": "affected", "count": 0 }
+      },
+      {
+        "sql": "SELECT tenant_id, id FROM orders WHERE note = 'ghost' ORDER BY tenant_id, id",
+        "expect": { "kind": "rows", "order": "total" }
+      }
+    ]
+  },
+  {
+    "id": "delete_then_delete_again_zero",
+    "tags": ["smoke"],
+    "engines": ["mysql", "postgresql"],
+    "fixture": "orders_basic",
+    "steps": [
+      {
+        "sql": "DELETE FROM orders WHERE tenant_id = 2",
+        "expect": { "kind": "affected", "count": 1 }
+      },
+      {
+        "sql": "DELETE FROM orders WHERE tenant_id = 2",
+        "expect": { "kind": "affected", "count": 0 }
+      },
+      {
+        "sql": "SELECT tenant_id, id FROM orders ORDER BY tenant_id, id",
+        "expect": { "kind": "rows", "order": "total" }
+      }
+    ]
+  },
+  {
+    "id": "insert_duplicate_key_rejected_without_mutation",
+    "tags": ["smoke"],
+    "engines": ["mysql", "postgresql"],
+    "fixture": "orders_basic",
+    "steps": [
+      {
+        "sql": "INSERT INTO orders (tenant_id, id, amount, note) VALUES (1, 1, 99.00, 'clash')",
+        "expect": { "kind": "error", "class": "unique_violation" }
+      },
+      {
+        "sql": "SELECT tenant_id, id, amount FROM orders WHERE tenant_id = 1 AND id = 1 ORDER BY tenant_id, id",
+        "expect": { "kind": "rows", "order": "total" }
+      }
+    ]
+  },
+  {
+    "id": "insert_null_primary_key_rejected",
+    "tags": ["smoke"],
+    "engines": ["mysql", "postgresql"],
+    "fixture": "orders_basic",
+    "steps": [
+      {
+        "sql": "INSERT INTO orders (tenant_id, id, amount, note) VALUES (NULL, 9, 1.00, 'x')",
+        "expect": { "kind": "error", "class": "not_null_violation" }
+      },
+      {
+        "sql": "SELECT tenant_id, id FROM orders WHERE id = 9 ORDER BY tenant_id, id",
+        "expect": { "kind": "rows", "order": "total" }
+      }
+    ]
+  },
+  {
+    "id": "transaction_commit_persists",
+    "tags": ["smoke"],
+    "engines": ["mysql", "postgresql"],
+    "fixture": "orders_basic",
+    "steps": [
+      { "sql": "BEGIN", "expect": { "kind": "affected", "count": 0 } },
+      {
+        "sql": "UPDATE orders SET amount = 11.00 WHERE tenant_id = 1 AND id = 1",
+        "expect": { "kind": "affected", "count": 1 }
+      },
+      { "sql": "COMMIT", "expect": { "kind": "affected", "count": 0 } },
+      {
+        "sql": "SELECT tenant_id, id, amount FROM orders WHERE tenant_id = 1 AND id = 1 ORDER BY tenant_id, id",
+        "expect": { "kind": "rows", "order": "total" }
+      }
+    ]
+  },
+  {
+    "id": "transaction_rollback_discards",
+    "tags": ["smoke"],
+    "engines": ["mysql", "postgresql"],
+    "fixture": "orders_basic",
+    "steps": [
+      { "sql": "BEGIN", "expect": { "kind": "affected", "count": 0 } },
+      {
+        "sql": "UPDATE orders SET amount = 99.00 WHERE tenant_id = 1 AND id = 2",
+        "expect": { "kind": "affected", "count": 1 }
+      },
+      { "sql": "ROLLBACK", "expect": { "kind": "affected", "count": 0 } },
+      {
+        "sql": "SELECT tenant_id, id, amount FROM orders WHERE tenant_id = 1 AND id = 2 ORDER BY tenant_id, id",
+        "expect": { "kind": "rows", "order": "total" }
+      }
+    ]
+  },
+  {
+    "id": "final_state_after_mixed_writes",
+    "tags": ["smoke"],
+    "engines": ["mysql", "postgresql"],
+    "fixture": "orders_basic",
+    "setup": [
+      "INSERT INTO orders (tenant_id, id, amount, note) VALUES (5, 1, 60.00, 'delta-insert')",
+      "UPDATE orders SET amount = 21.00 WHERE tenant_id = 1 AND id = 2",
+      "DELETE FROM orders WHERE tenant_id = 2"
+    ],
+    "steps": [
+      {
+        "sql": "SELECT tenant_id, id, amount, note FROM orders ORDER BY tenant_id, id",
+        "expect": { "kind": "rows", "order": "total" }
+      }
+    ]
+  },
+  {
+    "id": "ddl_create_insert_drop",
+    "tags": ["smoke"],
+    "engines": ["mysql", "postgresql"],
+    "fixture": "orders_basic",
+    "steps": [
+      {
+        "sql": "CREATE TABLE scratch (id BIGINT NOT NULL, label VARCHAR(16), PRIMARY KEY (id))",
+        "expect": { "kind": "affected", "count": 0 }
+      },
+      {
+        "sql": "INSERT INTO scratch (id, label) VALUES (1, 'one')",
+        "expect": { "kind": "affected", "count": 1 }
+      },
+      {
+        "sql": "SELECT id, label FROM scratch ORDER BY id",
+        "expect": { "kind": "rows", "order": "total" }
+      },
+      { "sql": "DROP TABLE scratch", "expect": { "kind": "affected", "count": 0 } }
+    ]
+  }
+]

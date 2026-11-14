@@ -1,0 +1,7 @@
+PyMySQL==1.1.1
+mysql-connector-python==9.3.0
+psycopg2-binary==2.9.10
+psycopg==3.2.9
+psycopg-binary==3.2.9
+typing-extensions==4.13.2
+pymongo==4.19.0
