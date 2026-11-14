@@ -1,0 +1,15 @@
+{
+  "orders": [
+    {"_id": 1, "tenant_id": 1, "amount": 10.0, "note": "alpha"},
+    {"_id": 2, "tenant_id": 1, "amount": 20.0, "note": "bravo"},
+    {"_id": 3, "tenant_id": 1, "amount": 30.0, "note": "charlie"},
+    {"_id": 4, "tenant_id": 2, "amount": 40.0, "note": "bravo-tenant-two"},
+    {"_id": 5, "tenant_id": 1, "amount": 50.0, "note": "echo"},
+    {"_id": 6, "tenant_id": 1, "amount": 10.0, "note": "alpha-dup-amount"}
+  ],
+  "customers": [
+    {"_id": 10, "name": "Ada"},
+    {"_id": 20, "name": "Bea"},
+    {"_id": 30, "name": "Cal"}
+  ]
+}

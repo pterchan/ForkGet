@@ -1,0 +1,111 @@
+name: forkget-local
+
+x-image: &image
+  image: forkget:local
+  build:
+    context: ..
+    dockerfile: deploy/Dockerfile
+    args:
+      FG_BUILD_REVISION: ${FG_BUILD_REVISION:-unavailable}
+
+x-control-environment: &control-environment
+  FG_META_DSN: ${FG_META_DSN:?Run deploy/prepare.sh and configure operator.env}
+  FG_BACKEND_GC_DSN: ${FG_BACKEND_GC_DSN:?Configure the dedicated native GC connection}
+  FG_BRANCH_ADMIN_DSN: ${FG_BRANCH_ADMIN_DSN:?Configure the native branch administrator}
+  FG_BRANCH_ADMIN_USER: fg_branch_admin
+  FG_BACKEND_SERVICE_USER: fg_service
+  FG_BACKEND_GC_USER: fg_gc
+  FG_BACKEND_CA: /run/native/backend-ca.pem
+  FG_CONTROL_ACCOUNTS: ${FG_CONTROL_ACCOUNTS}
+  FG_INTERNAL_TOKEN: ${FG_INTERNAL_TOKEN}
+  FG_CONTROL_LISTEN: 127.0.0.1:8081
+  FG_PROXY_CONTROL_URL: http://127.0.0.1:8082
+  FG_STATE_DIR: /var/lib/forkget/state
+  FG_NATIVE_FREE_BYTES:
+
+services:
+  metadata:
+    image: postgres:16.14
+    network_mode: host
+    command: [postgres, -c, listen_addresses=127.0.0.1, -p, '15432']
+    environment:
+      POSTGRES_USER: fg_meta_admin
+      POSTGRES_DB: forkget
+      POSTGRES_PASSWORD: ${FG_METADATA_ADMIN_PASSWORD}
+      FG_METADATA_RUNTIME_PASSWORD: ${FG_METADATA_RUNTIME_PASSWORD}
+      PGPORT: '15432'
+    volumes:
+      - metadata:/var/lib/postgresql/data
+      - ./metadata-init.sh:/docker-entrypoint-initdb.d/forkget.sh:ro
+    healthcheck:
+      test: [CMD, pg_isready, -h, 127.0.0.1, -p, '15432', -U, fg_meta_admin, -d, forkget]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+    restart: unless-stopped
+
+  control:
+    <<: *image
+    network_mode: host
+    command: [fg-control, serve]
+    environment:
+      <<: *control-environment
+      FG_CONSOLE_DIR: /usr/share/forkget/console
+    volumes:
+      - state:/var/lib/forkget/state
+      - ${FG_BACKEND_CA_HOST:-./private/backend-ca.pem}:/run/native/backend-ca.pem:ro
+    depends_on:
+      metadata:
+        condition: service_healthy
+    restart: unless-stopped
+
+  proxy:
+    <<: *image
+    network_mode: host
+    command: [fg-proxy]
+    environment:
+      FG_BACKEND_DSN: ${FG_BACKEND_DSN:?Configure the dedicated native service connection}
+      FG_BACKEND_SERVICE_USER: fg_service
+      FG_BACKEND_GC_USER: fg_gc
+      FG_BRANCH_ADMIN_USER: fg_branch_admin
+      FG_BACKEND_CA: /run/native/backend-ca.pem
+      FG_FRONTEND_ACCOUNTS: ${FG_FRONTEND_ACCOUNTS}
+      FG_TLS_CERT: /run/frontend/frontend.pem
+      FG_TLS_KEY: /run/frontend/frontend.key
+      FG_INTERNAL_TOKEN: ${FG_INTERNAL_TOKEN}
+      FG_CONTROL_URL: http://127.0.0.1:8081
+      FG_PROXY_CONTROL_LISTEN: 127.0.0.1:8082
+      FG_LISTEN_MYSQL: 127.0.0.1:${FG_MYSQL_PORT:-3306}
+      FG_LISTEN_PG: 127.0.0.1:${FG_PG_PORT:-5432}
+    volumes:
+      - ./private:/run/frontend:ro
+      - ${FG_BACKEND_CA_HOST:-./private/backend-ca.pem}:/run/native/backend-ca.pem:ro
+    depends_on: [control]
+    restart: unless-stopped
+
+  operator:
+    <<: *image
+    profiles: [tools]
+    network_mode: host
+    environment:
+      <<: *control-environment
+      FG_META_MIGRATION_DSN: ${FG_META_MIGRATION_DSN}
+      FG_BACKEND_DSN: ${FG_BACKEND_DSN}
+      FG_BACKEND_ADMIN_DSN: ${FG_BACKEND_ADMIN_DSN}
+      FG_METADATA_ADMIN_PASSWORD: ${FG_METADATA_ADMIN_PASSWORD}
+      FG_OWNER_TOKEN: ${FG_OWNER_TOKEN}
+      FG_FRONTEND_ACCOUNTS: ${FG_FRONTEND_ACCOUNTS}
+      FG_TLS_CERT: /run/frontend/frontend.pem
+      FG_TLS_KEY: /run/frontend/frontend.key
+      FG_SOURCE_CA: /run/source/source-ca.pem
+    volumes:
+      - ./private:/run/frontend:ro
+      - work:/work
+      - state:/var/lib/forkget/state
+      - ${FG_BACKEND_CA_HOST:-./private/backend-ca.pem}:/run/native/backend-ca.pem:ro
+      - ${FG_SOURCE_CA_HOST:-./private/backend-ca.pem}:/run/source/source-ca.pem:ro
+
+volumes:
+  metadata:
+  state:
+  work:

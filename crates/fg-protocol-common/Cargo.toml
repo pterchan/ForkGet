@@ -1,0 +1,30 @@
+[package]
+name = "fg-protocol-common"
+description = "Forkget protocol errors, transport settings, and local branch routing"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[features]
+default = ["transport"]
+transport = ["dep:rustls", "dep:tokio-rustls"]
+routing = ["dep:rand", "dep:reqwest", "dep:serde", "dep:serde_json", "dep:jiff", "dep:subtle", "dep:tokio", "dep:base64", "dep:bson"]
+
+[dependencies]
+base64 = { workspace = true, optional = true }
+bson = { version = "2", default-features = false, optional = true }
+rustls = { workspace = true, optional = true }
+rand = { workspace = true, optional = true }
+reqwest = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
+jiff = { workspace = true, optional = true }
+subtle = { workspace = true, optional = true }
+thiserror.workspace = true
+tokio = { workspace = true, optional = true }
+tokio-rustls = { workspace = true, optional = true }
+
+[lints]
+workspace = true

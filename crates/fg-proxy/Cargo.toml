@@ -1,0 +1,33 @@
+[package]
+name = "fg-proxy"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+axum.workspace = true
+mongodb.workspace = true
+fg-protocol-common = { path = "../fg-protocol-common", features = ["routing"] }
+fg-proto-mongo = { path = "../fg-proto-mongo" }
+fg-proto-mysql = { path = "../fg-proto-mysql" }
+fg-proto-pg = { path = "../fg-proto-pg" }
+fg-rewrite = { path = "../fg-rewrite" }
+percent-encoding = "2"
+reqwest.workspace = true
+rustls.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["fs"] }
+tokio-util = { version = "0.7", features = ["io"] }
+tempfile.workspace = true
+futures-core = "0.3"
+tokio-rustls.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[lints]
+workspace = true

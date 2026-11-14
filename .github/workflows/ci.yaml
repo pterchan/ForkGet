@@ -1,0 +1,365 @@
+name: Rust
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_BUILD_JOBS: "2"
+  CARGO_PROFILE_DEV_DEBUG: "0"
+  CARGO_PROFILE_TEST_DEBUG: "0"
+  # Throwaway passwords for the disposable CI service containers only; they
+  # configure single-job containers and are not credentials of any real system.
+  FG_TEST_MYSQL_ROOT_PASSWORD: fg-ci-mysql
+  FG_TEST_POSTGRES_PASSWORD: fg-ci-postgres
+  FG_TEST_TIDB_ROOT_PASSWORD: fg-ci-tidb
+  FG_TEST_MONGO_ROOT_PASSWORD: fg-ci-mongo
+
+jobs:
+  console:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+          cache: npm
+          cache-dependency-path: apps/console/package-lock.json
+      - name: Install console dependencies
+        working-directory: apps/console
+        run: npm ci
+      - name: Check, test and build the static console
+        working-directory: apps/console
+        run: |
+          npm run check
+          npm test
+          npm run build
+          npx playwright install --with-deps chromium
+          npm run test:browser
+      - name: Upload console test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: console-browser
+          path: apps/console/artifacts/
+          if-no-files-found: ignore
+
+  console-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [mysql, postgresql, tidb, mongodb]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.94.1 --profile minimal
+      - name: Prepare native browser acceptance
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends postgresql-client-16 default-mysql-client python3-venv
+          python3 -m venv "$RUNNER_TEMP/console-python"
+          "$RUNNER_TEMP/console-python/bin/pip" install -r test/p10/requirements.txt
+          cargo build --locked --workspace
+          cd apps/console
+          npm ci
+          npm run build
+          npx playwright install --with-deps chromium
+      - name: Exercise the packaged console against the native engine
+        run: |
+          "$RUNNER_TEMP/console-python/bin/python" test/p11/console_native.py \
+            --engine '${{ matrix.engine }}' --report-dir "$RUNNER_TEMP/console-native"
+      - name: Upload native console reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: console-native-${{ matrix.engine }}
+          path: ${{ runner.temp }}/console-native/
+          if-no-files-found: ignore
+
+  core:
+    runs-on: ubuntu-24.04
+    services:
+      mysql:
+        image: mysql:8.0.43
+        env:
+          MYSQL_ROOT_PASSWORD: fg-ci-mysql
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+      postgres:
+        image: postgres:16.14
+        env:
+          POSTGRES_USER: fg_test
+          POSTGRES_PASSWORD: fg-ci-postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fg_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+      tidb:
+        image: pingcap/tidb:v8.5.8
+        ports:
+          - 4000:4000
+        options: >-
+          --health-cmd "curl -sf http://127.0.0.1:10080/status"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+      mongo:
+        image: mongo:7.0.48
+        env:
+          MONGO_INITDB_ROOT_USERNAME: root
+          MONGO_INITDB_ROOT_PASSWORD: fg-ci-mongo
+        ports:
+          - 27027:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand(\"ping\").ok'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.94.1 --profile minimal --component clippy --component rustfmt
+      - name: Check core
+        run: make check
+      - name: Check P7 evidence guards
+        run: PYTHONDONTWRITEBYTECODE=1 python3 test/p7/gate_checks_test.py
+      - name: Install cargo-deny
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny@0.18.5
+      - name: License audit
+        run: make license-audit
+      - name: Test generated SQL on PostgreSQL 16
+        run: |
+          export PATH="/usr/lib/postgresql/16/bin:$PATH"
+          make test-postgres
+      - name: Install MySQL client
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends default-mysql-client
+      - name: Test generated SQL on MySQL 8
+        run: make test-mysql
+        env:
+          FG_TEST_MYSQL_HOST: 127.0.0.1
+          FG_TEST_MYSQL_PORT: "3306"
+      - name: Pin the TiDB root password and enable CHECK enforcement
+        run: |
+          mysql --no-defaults --protocol=TCP -h 127.0.0.1 -P 4000 -u root \
+            -e "ALTER USER 'root'@'%' IDENTIFIED BY 'fg-ci-tidb'; \
+                SET GLOBAL tidb_enable_check_constraint = ON"
+      - name: Differential smoke (reference-vs-reference, all engines)
+        run: make diff-test TAG=smoke
+        env:
+          MYSQL_PORT: "3306"
+          POSTGRES_PORT: "5432"
+          TIDB_PORT: "4000"
+          MONGO_PORT: "27027"
+      - name: Support-matrix check
+        run: make matrix TAG=smoke
+
+  mongo-branches:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.94.1 --profile minimal
+      - name: Test MongoDB branches through the production chain
+        env:
+          FG_P2_MONGO_REPORT_ROOT: ${{ runner.temp }}/forkget-p2-mongo-reports
+          MONGO_PORT: "27027"
+        run: make p2-mongo-test
+      - name: Test verified MongoDB TLS transport
+        env:
+          FG_P2_MONGO_REPORT_ROOT: ${{ runner.temp }}/forkget-p2-mongo-reports
+          FG_MONGO_TEST_TLS: "1"
+        run: make p2-mongo-test
+      - name: Upload MongoDB branch reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mongo-branches
+          path: ${{ runner.temp }}/forkget-p2-mongo-reports/
+          if-no-files-found: ignore
+
+  protocol-fixture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [mysql, postgresql, tidb, mongodb]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test isolated wire protocol against the native engine
+        env:
+          # The runner context is not available in job-level env.
+          FG_PROTOCOL_REPORT_ROOT: ${{ runner.temp }}/forkget-protocol-reports
+        run: make protocol-test ENGINE=${{ matrix.engine }}
+      - name: Upload protocol fixture reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: protocol-fixture-${{ matrix.engine }}
+          path: ${{ runner.temp }}/forkget-protocol-reports/
+          if-no-files-found: ignore
+
+  read-branches:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [mysql, postgresql, tidb]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.94.1 --profile minimal
+      - name: Test persisted read branches
+        env:
+          FG_P2_REPORT_ROOT: ${{ runner.temp }}/forkget-p2-reports
+        run: make p2-test ENGINE=${{ matrix.engine }}
+      - name: Test P7 measurement and isolation smoke
+        env:
+          FG_P7_REPORT_ROOT: ${{ runner.temp }}/forkget-p2-reports
+        run: make p7-smoke ENGINE=${{ matrix.engine }}
+      - name: Upload read branch reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: read-branches-${{ matrix.engine }}
+          path: ${{ runner.temp }}/forkget-p2-reports/
+          if-no-files-found: ignore
+
+  write-branches-and-lifecycle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [mysql, postgresql, tidb]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.94.1 --profile minimal
+      - name: Test native writes and snapshot lifecycle
+        env:
+          FG_P3P4_REPORT_ROOT: ${{ runner.temp }}/forkget-p3p4-reports
+        run: make p3p4-test ENGINE=${{ matrix.engine }}
+      - name: Upload write branch and lifecycle reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: write-branches-and-lifecycle-${{ matrix.engine }}
+          path: ${{ runner.temp }}/forkget-p3p4-reports/
+          if-no-files-found: ignore
+
+  policy-and-dry-run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [mysql, postgresql, tidb]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.94.1 --profile minimal
+      - name: Test write policy, approval and dry-run
+        env:
+          FG_P5_REPORT_ROOT: ${{ runner.temp }}/forkget-p5-reports
+        run: make p5-test ENGINE=${{ matrix.engine }}
+      - name: Upload policy reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: policy-and-dry-run-${{ matrix.engine }}
+          path: ${{ runner.temp }}/forkget-p5-reports/
+          if-no-files-found: ignore
+
+  github-ci-and-replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        engine: [mysql, postgresql, tidb]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test GitHub App, CI lifecycle and row replay locally
+        env:
+          FG_P6_REPORT_ROOT: ${{ runner.temp }}/forkget-p6-reports
+        run: make p6-test ENGINE=${{ matrix.engine }}
+      - name: Upload local P6 reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: p6-${{ matrix.engine }}
+          path: ${{ runner.temp }}/forkget-p6-reports/
+          if-no-files-found: ignore
+
+  product-closure:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.12'
+          cache: false
+      - name: Install native operator tools
+        shell: bash
+        run: |
+          set -eu
+          sudo apt-get update
+          sudo apt-get install -y --allow-downgrades --no-install-recommends \
+            postgresql-client-16=16.15-0ubuntu0.24.04.1 \
+            mysql-shell=8.0.36+dfsg-0ubuntu1 util-linux python3-venv
+          mkdir -p "$RUNNER_TEMP/native-bin" "$RUNNER_TEMP/lightning"
+          sh tools/dumpling/build.sh "$RUNNER_TEMP/native-bin/fg-dumpling-run"
+          curl --fail --location --proto '=https' --tlsv1.2 -sS \
+            https://tiup-mirrors.pingcap.com/tidb-lightning-v8.5.8-linux-amd64.tar.gz \
+            -o "$RUNNER_TEMP/lightning.tar.gz"
+          tar -xzf "$RUNNER_TEMP/lightning.tar.gz" -C "$RUNNER_TEMP/lightning"
+          mv "$RUNNER_TEMP/lightning/tidb-lightning" "$RUNNER_TEMP/native-bin/"
+          rm -f "$RUNNER_TEMP/lightning.tar.gz"
+          native_container=$(docker create mongo:7.0.48)
+          trap 'docker rm "$native_container" >/dev/null' EXIT
+          docker cp "$native_container:/usr/bin/mongodump" "$RUNNER_TEMP/native-bin/mongodump"
+          docker cp "$native_container:/usr/bin/mongorestore" "$RUNNER_TEMP/native-bin/mongorestore"
+          echo "$RUNNER_TEMP/native-bin" >> "$GITHUB_PATH"
+      - name: Release temporary compiler caches before native acceptance
+        run: |
+          set -eu
+          df -h "$RUNNER_TEMP" "$GITHUB_WORKSPACE"
+          go clean -cache -modcache
+          df -h "$RUNNER_TEMP" "$GITHUB_WORKSPACE"
+      - name: Install pinned application drivers
+        run: |
+          python3 -m venv "$RUNNER_TEMP/p10-python"
+          "$RUNNER_TEMP/p10-python/bin/pip" install -r test/p10/requirements.txt
+      - name: Test native user-data, normal applications and recovery
+        run: |
+          "$RUNNER_TEMP/p10-python/bin/python" test/p10/local.py \
+            --source-revision "$GITHUB_SHA" --suite product \
+            --report-root "$RUNNER_TEMP/product-closure"
+      - name: Upload product closure reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: product-closure
+          path: ${{ runner.temp }}/product-closure/
+          if-no-files-found: ignore

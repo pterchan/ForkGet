@@ -1,0 +1,248 @@
+[
+  {
+    "kind":"types",
+    "sql":"SELECT typname AS name, oid, typarray AS array_oid, oid::regtype::text AS regtype, typdelim AS delimiter FROM pg_type t WHERE t.oid = to_regtype($1) ORDER BY t.oid",
+    "parameters":["name"],
+    "columns":["name","oid","array_oid","regtype","delimiter"]
+  },
+  {
+    "kind": "tables",
+    "sql": "SELECT pg_catalog.pg_class.relname \nFROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace \nWHERE pg_catalog.pg_class.relkind = ANY (ARRAY[$1::VARCHAR, $2::VARCHAR]) AND pg_catalog.pg_class.relpersistence != $3::VARCHAR AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != $4::VARCHAR",
+    "parameters": [
+      "param_1",
+      "param_2",
+      "relpersistence_1",
+      "nspname_1"
+    ],
+    "columns": [
+      "relname"
+    ]
+  },
+  {
+    "kind": "tables",
+    "sql": "SELECT pg_catalog.pg_class.relname \nFROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace \nWHERE pg_catalog.pg_class.relname IN ($1::VARCHAR) AND pg_catalog.pg_class.relkind = ANY (ARRAY[$2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != $7::VARCHAR",
+    "parameters": [
+      "table_names_1",
+      "param_1",
+      "param_2",
+      "param_3",
+      "param_4",
+      "param_5",
+      "nspname_1"
+    ],
+    "columns": [
+      "relname"
+    ]
+  },
+  {
+    "kind": "columns",
+    "sql": "SELECT pg_catalog.pg_attribute.attname AS name, pg_catalog.format_type(pg_catalog.pg_attribute.atttypid, pg_catalog.pg_attribute.atttypmod) AS format_type, CASE WHEN pg_catalog.pg_attribute.atthasdef THEN (SELECT pg_catalog.pg_get_expr(pg_catalog.pg_attrdef.adbin, pg_catalog.pg_attrdef.adrelid) AS pg_get_expr_1 \nFROM pg_catalog.pg_attrdef \nWHERE pg_catalog.pg_attribute.atthasdef AND pg_catalog.pg_attrdef.adrelid = pg_catalog.pg_attribute.attrelid AND pg_catalog.pg_attrdef.adnum = pg_catalog.pg_attribute.attnum) ELSE NULL END AS \"default\", pg_catalog.pg_attribute.attnotnull AS not_null, pg_catalog.pg_class.relname AS table_name, pg_catalog.pg_description.description AS comment, pg_catalog.pg_attribute.attgenerated AS generated, CASE WHEN (pg_catalog.pg_attribute.attidentity != $1::VARCHAR) THEN (SELECT json_build_object($2::VARCHAR, pg_catalog.pg_attribute.attidentity = $3::VARCHAR, $4::VARCHAR, pg_catalog.pg_sequence.seqstart, $5::VARCHAR, pg_catalog.pg_sequence.seqincrement, $6::VARCHAR, pg_catalog.pg_sequence.seqmin, $7::VARCHAR, pg_catalog.pg_sequence.seqmax, $8::VARCHAR, pg_catalog.pg_sequence.seqcache, $9::VARCHAR, pg_catalog.pg_sequence.seqcycle) AS json_build_object_1 \nFROM pg_catalog.pg_sequence \nWHERE pg_catalog.pg_attribute.attidentity != $10::VARCHAR AND pg_catalog.pg_sequence.seqrelid = CAST(CAST(pg_catalog.pg_get_serial_sequence(CAST(CAST(pg_catalog.pg_attribute.attrelid AS REGCLASS) AS TEXT), pg_catalog.pg_attribute.attname) AS REGCLASS) AS OID)) ELSE NULL END AS identity_options, CASE WHEN (pg_catalog.pg_attribute.attcollation != $11::INTEGER AND (SELECT pg_catalog.pg_type.typcollation \nFROM pg_catalog.pg_type \nWHERE pg_catalog.pg_type.oid = pg_catalog.pg_attribute.atttypid) != pg_catalog.pg_attribute.attcollation) THEN (SELECT json_build_object($12::VARCHAR, pg_catalog.pg_collation.collname, $13::VARCHAR, CASE WHEN pg_catalog.pg_collation_is_visible(pg_catalog.pg_collation.oid) THEN NULL ELSE pg_catalog.pg_namespace.nspname END) AS json_build_object_9 \nFROM pg_catalog.pg_collation JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_collation.collnamespace \nWHERE pg_catalog.pg_collation.oid = pg_catalog.pg_attribute.attcollation) ELSE NULL END AS collation \nFROM pg_catalog.pg_class LEFT OUTER JOIN pg_catalog.pg_attribute ON pg_catalog.pg_class.oid = pg_catalog.pg_attribute.attrelid AND pg_catalog.pg_attribute.attnum > $14::SMALLINT AND NOT pg_catalog.pg_attribute.attisdropped LEFT OUTER JOIN pg_catalog.pg_description ON pg_catalog.pg_description.objoid = pg_catalog.pg_attribute.attrelid AND pg_catalog.pg_description.objsubid = pg_catalog.pg_attribute.attnum JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace \nWHERE pg_catalog.pg_class.relkind = ANY (ARRAY[$15::VARCHAR, $16::VARCHAR, $17::VARCHAR, $18::VARCHAR, $19::VARCHAR]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != $20::VARCHAR AND pg_catalog.pg_class.relname IN ($21::VARCHAR) ORDER BY pg_catalog.pg_class.relname, pg_catalog.pg_attribute.attnum",
+    "parameters": [
+      "attidentity_1",
+      "json_build_object_2",
+      "attidentity_2",
+      "json_build_object_3",
+      "json_build_object_4",
+      "json_build_object_5",
+      "json_build_object_6",
+      "json_build_object_7",
+      "json_build_object_8",
+      "attidentity_3",
+      "attcollation_1",
+      "json_build_object_10",
+      "json_build_object_11",
+      "attnum_1",
+      "param_1",
+      "param_2",
+      "param_3",
+      "param_4",
+      "param_5",
+      "nspname_1",
+      "filter_names_1"
+    ],
+    "columns": [
+      "name",
+      "format_type",
+      "default",
+      "not_null",
+      "table_name",
+      "comment",
+      "generated",
+      "identity_options",
+      "collation"
+    ]
+  },
+  {
+    "kind": "table_oids",
+    "sql": "SELECT pg_catalog.pg_class.oid, pg_catalog.pg_class.relname \nFROM pg_catalog.pg_class JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace \nWHERE pg_catalog.pg_class.relkind = ANY (ARRAY[$1::VARCHAR, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != $6::VARCHAR AND pg_catalog.pg_class.relname IN ($7::VARCHAR)",
+    "parameters": [
+      "param_1",
+      "param_2",
+      "param_3",
+      "param_4",
+      "param_5",
+      "nspname_1",
+      "filter_names_1"
+    ],
+    "columns": [
+      "oid",
+      "relname"
+    ]
+  },
+  {
+    "kind": "keys",
+    "sql": "SELECT attr.conrelid, array_agg(CAST(attr.attname AS TEXT) ORDER BY attr.ord) AS cols, attr.conname, min(attr.description) AS description, min(attr.indnkeyatts) AS indnkeyatts, bool_and(attr.indnullsnotdistinct) AS indnullsnotdistinct \nFROM (SELECT con.conrelid AS conrelid, con.conname AS conname, con.description AS description, con.ord AS ord, con.indnkeyatts AS indnkeyatts, con.indnullsnotdistinct AS indnullsnotdistinct, pg_catalog.pg_attribute.attname AS attname \nFROM pg_catalog.pg_attribute JOIN (SELECT pg_catalog.pg_constraint.conrelid AS conrelid, pg_catalog.pg_constraint.conname AS conname, unnest(pg_catalog.pg_index.indkey) AS attnum, generate_subscripts(pg_catalog.pg_index.indkey, $1::INTEGER) AS ord, pg_catalog.pg_index.indnkeyatts AS indnkeyatts, pg_catalog.pg_index.indnullsnotdistinct AS indnullsnotdistinct, pg_catalog.pg_description.description AS description \nFROM pg_catalog.pg_constraint JOIN pg_catalog.pg_index ON pg_catalog.pg_constraint.conindid = pg_catalog.pg_index.indexrelid LEFT OUTER JOIN pg_catalog.pg_description ON pg_catalog.pg_description.objoid = pg_catalog.pg_constraint.oid AND pg_catalog.pg_description.classoid = CAST($2 AS REGCLASS) \nWHERE pg_catalog.pg_constraint.contype = $3::VARCHAR AND pg_catalog.pg_constraint.conrelid IN ($4)) AS con ON pg_catalog.pg_attribute.attnum = con.attnum AND pg_catalog.pg_attribute.attrelid = con.conrelid \nWHERE con.conrelid IN ($4)) AS attr GROUP BY attr.conrelid, attr.conname ORDER BY attr.conrelid, attr.conname",
+    "parameters": [
+      "generate_subscripts_1",
+      "param_1",
+      "contype",
+      "oids_1"
+    ],
+    "columns": [
+      "conrelid",
+      "cols",
+      "conname",
+      "description",
+      "indnkeyatts",
+      "indnullsnotdistinct"
+    ]
+  },
+  {
+    "kind": "foreign_keys",
+    "sql": "SELECT pg_catalog.pg_class.relname, pg_catalog.pg_constraint.conname, CASE WHEN (pg_catalog.pg_constraint.oid IS NOT NULL) THEN pg_catalog.pg_get_constraintdef(pg_catalog.pg_constraint.oid, $1) END AS anon_1, nsp_ref.nspname, pg_catalog.pg_description.description \nFROM pg_catalog.pg_class LEFT OUTER JOIN pg_catalog.pg_constraint ON pg_catalog.pg_class.oid = pg_catalog.pg_constraint.conrelid AND pg_catalog.pg_constraint.contype = $2::VARCHAR LEFT OUTER JOIN pg_catalog.pg_class AS cls_ref ON cls_ref.oid = pg_catalog.pg_constraint.confrelid LEFT OUTER JOIN pg_catalog.pg_namespace AS nsp_ref ON cls_ref.relnamespace = nsp_ref.oid LEFT OUTER JOIN pg_catalog.pg_description ON pg_catalog.pg_description.objoid = pg_catalog.pg_constraint.oid AND pg_catalog.pg_description.classoid = CAST($3 AS REGCLASS) JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace \nWHERE pg_catalog.pg_class.relkind = ANY (ARRAY[$4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::VARCHAR]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != $9::VARCHAR AND pg_catalog.pg_class.relname IN ($10::VARCHAR) ORDER BY pg_catalog.pg_class.relname, pg_catalog.pg_constraint.conname",
+    "parameters": [
+      "pg_get_constraintdef_1",
+      "contype_1",
+      "param_1",
+      "param_2",
+      "param_3",
+      "param_4",
+      "param_5",
+      "param_6",
+      "nspname_1",
+      "filter_names_1"
+    ],
+    "columns": [
+      "relname",
+      "conname",
+      "anon_1",
+      "nspname",
+      "description"
+    ]
+  },
+  {
+    "kind": "access_methods",
+    "sql": "SELECT pg_catalog.pg_am.oid, pg_catalog.pg_am.amname \nFROM pg_catalog.pg_am \nWHERE pg_catalog.pg_am.amname = $1::VARCHAR",
+    "parameters": [
+      "amname_1"
+    ],
+    "columns": [
+      "oid",
+      "amname"
+    ]
+  },
+  {
+    "kind": "opclasses",
+    "sql": "SELECT pg_catalog.pg_opclass.oid, pg_catalog.pg_opclass.opcname \nFROM pg_catalog.pg_opclass \nWHERE NOT pg_catalog.pg_opclass.opcdefault",
+    "parameters": [],
+    "columns": [
+      "oid",
+      "opcname"
+    ]
+  },
+  {
+    "kind": "indexes",
+    "sql": "SELECT pg_catalog.pg_index.indrelid, pg_catalog.pg_class.relname, pg_catalog.pg_index.indisunique, pg_catalog.pg_index.indisvalid, pg_catalog.pg_constraint.conrelid IS NOT NULL AS has_constraint, pg_catalog.pg_index.indoption, pg_catalog.pg_class.reloptions, pg_catalog.pg_class.relam, CASE WHEN (pg_catalog.pg_index.indpred IS NOT NULL) THEN pg_catalog.pg_get_expr(pg_catalog.pg_index.indpred, pg_catalog.pg_index.indrelid) END AS filter_definition, pg_catalog.pg_index.indnkeyatts, pg_catalog.pg_index.indnullsnotdistinct, idx_cols.elements, idx_cols.elements_is_expr, idx_cols.elements_opclass \nFROM pg_catalog.pg_index JOIN pg_catalog.pg_class ON pg_catalog.pg_index.indexrelid = pg_catalog.pg_class.oid LEFT OUTER JOIN (SELECT idx_attr.indexrelid AS indexrelid, min(idx_attr.indrelid) AS min_1, array_agg(idx_attr.element ORDER BY idx_attr.ord) AS elements, array_agg(idx_attr.is_expr ORDER BY idx_attr.ord) AS elements_is_expr, array_agg(idx_attr.att_opclass ORDER BY idx_attr.ord) AS elements_opclass \nFROM (SELECT idx.indexrelid AS indexrelid, idx.indrelid AS indrelid, idx.ord AS ord, CASE WHEN (idx.attnum = $1::INTEGER) THEN pg_catalog.pg_get_indexdef(idx.indexrelid, idx.ord + $2::INTEGER, $3) ELSE CAST(pg_catalog.pg_attribute.attname AS TEXT) END AS element, idx.attnum = $4::INTEGER AS is_expr, CAST(idx.att_opclass AS BIGINT) AS att_opclass \nFROM (SELECT pg_catalog.pg_index.indexrelid AS indexrelid, pg_catalog.pg_index.indrelid AS indrelid, unnest(pg_catalog.pg_index.indkey) AS attnum, unnest(pg_catalog.pg_index.indclass) AS att_opclass, generate_subscripts(pg_catalog.pg_index.indkey, $5::INTEGER) AS ord \nFROM pg_catalog.pg_index \nWHERE NOT pg_catalog.pg_index.indisprimary AND pg_catalog.pg_index.indrelid IN ($6)) AS idx LEFT OUTER JOIN pg_catalog.pg_attribute ON pg_catalog.pg_attribute.attnum = idx.attnum AND pg_catalog.pg_attribute.attrelid = idx.indrelid \nWHERE idx.indrelid IN ($6)) AS idx_attr GROUP BY idx_attr.indexrelid) AS idx_cols ON pg_catalog.pg_index.indexrelid = idx_cols.indexrelid LEFT OUTER JOIN pg_catalog.pg_constraint ON pg_catalog.pg_index.indrelid = pg_catalog.pg_constraint.conrelid AND pg_catalog.pg_index.indexrelid = pg_catalog.pg_constraint.conindid AND pg_catalog.pg_constraint.contype = ANY (ARRAY[$7::VARCHAR, $8::VARCHAR, $9::VARCHAR]) \nWHERE pg_catalog.pg_index.indrelid IN ($6) AND NOT pg_catalog.pg_index.indisprimary ORDER BY pg_catalog.pg_index.indrelid, pg_catalog.pg_class.relname",
+    "parameters": [
+      "attnum_1",
+      "ord_1",
+      "pg_get_indexdef_1",
+      "attnum_2",
+      "generate_subscripts_1",
+      "oids_1",
+      "param_1",
+      "param_2",
+      "param_3"
+    ],
+    "columns": [
+      "indrelid",
+      "relname",
+      "indisunique",
+      "indisvalid",
+      "has_constraint",
+      "indoption",
+      "reloptions",
+      "relam",
+      "filter_definition",
+      "indnkeyatts",
+      "indnullsnotdistinct",
+      "elements",
+      "elements_is_expr",
+      "elements_opclass"
+    ]
+  },
+  {
+    "kind": "checks",
+    "sql": "SELECT pg_catalog.pg_class.relname, pg_catalog.pg_constraint.conname, CASE WHEN (pg_catalog.pg_constraint.oid IS NOT NULL) THEN pg_catalog.pg_get_constraintdef(pg_catalog.pg_constraint.oid, $1) END AS anon_1, pg_catalog.pg_description.description \nFROM pg_catalog.pg_class LEFT OUTER JOIN pg_catalog.pg_constraint ON pg_catalog.pg_class.oid = pg_catalog.pg_constraint.conrelid AND pg_catalog.pg_constraint.contype = $2::VARCHAR LEFT OUTER JOIN pg_catalog.pg_description ON pg_catalog.pg_description.objoid = pg_catalog.pg_constraint.oid AND pg_catalog.pg_description.classoid = CAST($3 AS REGCLASS) JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace \nWHERE pg_catalog.pg_class.relkind = ANY (ARRAY[$4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR, $8::VARCHAR]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != $9::VARCHAR AND pg_catalog.pg_class.relname IN ($10::VARCHAR) ORDER BY pg_catalog.pg_class.relname, pg_catalog.pg_constraint.conname",
+    "parameters": [
+      "pg_get_constraintdef_1",
+      "contype_1",
+      "param_1",
+      "param_2",
+      "param_3",
+      "param_4",
+      "param_5",
+      "param_6",
+      "nspname_1",
+      "filter_names_1"
+    ],
+    "columns": [
+      "relname",
+      "conname",
+      "anon_1",
+      "description"
+    ]
+  },
+  {
+    "kind": "comments",
+    "sql": "SELECT pg_catalog.pg_class.relname, pg_catalog.pg_description.description \nFROM pg_catalog.pg_class LEFT OUTER JOIN pg_catalog.pg_description ON pg_catalog.pg_class.oid = pg_catalog.pg_description.objoid AND pg_catalog.pg_description.objsubid = $1::INTEGER AND pg_catalog.pg_description.classoid = CAST($2 AS REGCLASS) JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace \nWHERE pg_catalog.pg_class.relkind = ANY (ARRAY[$3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR, $7::VARCHAR]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != $8::VARCHAR AND pg_catalog.pg_class.relname IN ($9::VARCHAR)",
+    "parameters": [
+      "objsubid_1",
+      "param_1",
+      "param_2",
+      "param_3",
+      "param_4",
+      "param_5",
+      "param_6",
+      "nspname_1",
+      "filter_names_1"
+    ],
+    "columns": [
+      "relname",
+      "description"
+    ]
+  },
+  {
+    "kind": "table_options",
+    "sql": "SELECT pg_catalog.pg_class.oid, pg_catalog.pg_class.relname, pg_catalog.pg_class.reloptions, NULL AS relhasoids, CASE WHEN (pg_catalog.pg_am.amname IS NOT NULL AND pg_catalog.pg_am.amname != current_setting($1::VARCHAR)) THEN pg_catalog.pg_am.amname ELSE NULL END AS access_method_name, pg_catalog.pg_tablespace.spcname AS tablespace_name, inherits.parent_table_names \nFROM pg_catalog.pg_class LEFT OUTER JOIN pg_catalog.pg_am ON pg_catalog.pg_class.relam = pg_catalog.pg_am.oid LEFT OUTER JOIN (SELECT pg_catalog.pg_inherits.inhrelid AS inhrelid, array_agg(pg_catalog.pg_class.relname ORDER BY pg_catalog.pg_inherits.inhseqno) AS parent_table_names \nFROM pg_catalog.pg_inherits JOIN pg_catalog.pg_class ON pg_catalog.pg_inherits.inhparent = pg_catalog.pg_class.oid GROUP BY pg_catalog.pg_inherits.inhrelid) AS inherits ON pg_catalog.pg_class.oid = inherits.inhrelid LEFT OUTER JOIN pg_catalog.pg_tablespace ON pg_catalog.pg_tablespace.oid = pg_catalog.pg_class.reltablespace JOIN pg_catalog.pg_namespace ON pg_catalog.pg_namespace.oid = pg_catalog.pg_class.relnamespace \nWHERE pg_catalog.pg_class.relkind = ANY (ARRAY[$2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::VARCHAR, $6::VARCHAR]) AND pg_catalog.pg_table_is_visible(pg_catalog.pg_class.oid) AND pg_catalog.pg_namespace.nspname != $7::VARCHAR AND pg_catalog.pg_class.relname IN ($8::VARCHAR)",
+    "parameters": [
+      "current_setting_1",
+      "param_1",
+      "param_2",
+      "param_3",
+      "param_4",
+      "param_5",
+      "nspname_1",
+      "filter_names_1"
+    ],
+    "columns": [
+      "oid",
+      "relname",
+      "reloptions",
+      "relhasoids",
+      "access_method_name",
+      "tablespace_name",
+      "parent_table_names"
+    ]
+  }
+]

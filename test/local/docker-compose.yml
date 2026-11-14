@@ -1,0 +1,80 @@
+# Disposable multi-engine test environment.
+#
+# Image versions are pinned; record the exact server version observed at run
+# time in the run report (the containers also print it via `make local-up`).
+# Credentials are injected from the environment or test/local/.env and never
+# committed. Ports are bound to loopback only.
+
+services:
+  mysql:
+    image: mysql:8.0.43
+    environment:
+      MYSQL_ROOT_PASSWORD: ${FG_TEST_MYSQL_ROOT_PASSWORD:?set FG_TEST_MYSQL_ROOT_PASSWORD in the environment or test/local/.env}
+    ports:
+      - "127.0.0.1:${MYSQL_PORT:-33061}:3306"
+    volumes:
+      - fg-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysql -uroot -p\"$$MYSQL_ROOT_PASSWORD\" -e 'SELECT 1'"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  postgres:
+    image: postgres:16.14
+    environment:
+      POSTGRES_USER: fg_test
+      POSTGRES_PASSWORD: ${FG_TEST_POSTGRES_PASSWORD:?set FG_TEST_POSTGRES_PASSWORD in the environment or test/local/.env}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-55432}:5432"
+    volumes:
+      - fg-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  # TiDB writable branches additionally require
+  # tidb_enable_check_constraint=ON, applied by the suite harnesses.
+  tidb:
+    image: pingcap/tidb:v8.5.8
+    ports:
+      - "127.0.0.1:${TIDB_PORT:-33062}:4000"
+    volumes:
+      - fg-tidb-data:/var/lib/tidb
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:10080/status"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  # This disposable MongoDB fixture uses loopback plaintext. Authentication
+  # remains enabled, and the protocol challenge never sends the password.
+  mongo:
+    image: mongo:7.0.48
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: ${FG_TEST_MONGO_ROOT_PASSWORD:?set FG_TEST_MONGO_ROOT_PASSWORD in the environment or test/local/.env}
+    ports:
+      - "127.0.0.1:${MONGO_PORT:-27027}:27017"
+    volumes:
+      - fg-mongo-data:/data/db
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh -u root -p \"$$MONGO_INITDB_ROOT_PASSWORD\" --quiet --eval 'db.runCommand(\"ping\").ok' | grep -q 1",
+        ]
+      interval: 2s
+      timeout: 10s
+      retries: 30
+      start_period: 20s
+
+volumes:
+  fg-mysql-data:
+  fg-postgres-data:
+  fg-tidb-data:
+  fg-mongo-data:

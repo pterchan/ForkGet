@@ -1,0 +1,275 @@
+{
+  "mysql": {
+    "native_version": "8.0.43",
+    "common_cases": [
+      "verified-tls-and-select",
+      "wrong-password",
+      "unauthorized-branch",
+      "missing-branch",
+      "wrong-ca",
+      "unsupported-sql",
+      "disconnect-rollback"
+    ],
+    "drivers": {
+      "mysql-cli": {
+        "version": [
+          "8.0.43"
+        ],
+        "cases": []
+      },
+      "connector-j": {
+        "version": [
+          "9.3.0",
+          "Java 21.0.11+10"
+        ],
+        "cases": [
+          "prepared-reuse-1",
+          "prepared-reuse-2",
+          "prepared-reuse-3",
+          "incorrect-binding"
+        ]
+      },
+      "pymysql": {
+        "version": [
+          "1.1.1",
+          "Python 3.12.14"
+        ],
+        "cases": [
+          "unknown-user",
+          "null-empty-bytes",
+          "transaction-visibility",
+          "rollback",
+          "savepoint-rollback"
+        ]
+      },
+      "go-sql-driver": {
+        "version": [
+          "v1.9.3",
+          "go1.26.2"
+        ],
+        "cases": [
+          "prepared-reuse-1",
+          "prepared-reuse-2",
+          "prepared-reuse-3",
+          "incorrect-binding"
+        ]
+      },
+      "connector-python": {
+        "version": [
+          "9.3.0",
+          "Python 3.12.14"
+        ],
+        "cases": [
+          "prepared-reuse-1",
+          "prepared-reuse-2",
+          "prepared-reuse-3",
+          "prepared-null-empty-bind",
+          "prepared-unsigned-bytes",
+          "incorrect-binding"
+        ]
+      },
+      "raw": {
+        "version": [
+          "Python 3.12.14"
+        ],
+        "cases": [
+          "cleartext-connection-rejected",
+          "unsupported-capabilities-and-commands",
+          "exact-fragment-and-sequence-reset",
+          "prepared-reset-close-and-session-ownership",
+          "mysql-native-transaction-status-and-savepoint",
+          "wrong-packet-sequence",
+          "mysql-raw-wire"
+        ]
+      }
+    }
+  },
+  "postgresql": {
+    "native_version": "16.14",
+    "common_cases": [
+      "verified-tls-and-select",
+      "wrong-password",
+      "unauthorized-branch",
+      "wrong-ca",
+      "unsupported-sql",
+      "disconnect-rollback"
+    ],
+    "drivers": {
+      "psql": {
+        "version": [
+          "16.14"
+        ],
+        "cases": []
+      },
+      "psycopg2": {
+        "version": [
+          "2.9.10",
+          "libpq",
+          "Python 3.12.14"
+        ],
+        "cases": [
+          "unknown-user",
+          "null-empty-bytes",
+          "transaction-visibility",
+          "rollback"
+        ]
+      },
+      "psycopg": {
+        "version": [
+          "3.2.9",
+          "libpq",
+          "Python 3.12.14"
+        ],
+        "cases": [
+          "prepared-reuse-1",
+          "prepared-reuse-2",
+          "prepared-reuse-3",
+          "extended-error",
+          "failed-transaction",
+          "extended-sync-recovery",
+          "prepared-after-rollback",
+          "copy-output"
+        ]
+      },
+      "pgx": {
+        "version": [
+          "v5.7.6",
+          "go1.26.2"
+        ],
+        "cases": [
+          "prepared-reuse-1",
+          "prepared-reuse-2",
+          "prepared-reuse-3"
+        ]
+      },
+      "pgjdbc": {
+        "version": [
+          "42.7.7",
+          "Java 21.0.11+10"
+        ],
+        "cases": [
+          "prepared-reuse-1",
+          "prepared-reuse-2",
+          "prepared-reuse-3",
+          "incorrect-binding"
+        ]
+      },
+      "raw": {
+        "version": [
+          "Python 3.12.14"
+        ],
+        "cases": [
+          "cleartext-connection-rejected",
+          "authenticated-missing-branch-rejected",
+          "channel-binding-required-rejected",
+          "named-portal-suspend-and-resume",
+          "policy-error-sync-and-transaction-recovery",
+          "copy-out-protocol-and-values",
+          "owned-cancellation-and-spoof-rejection",
+          "oversized-frame",
+          "postgresql-raw-wire"
+        ]
+      }
+    }
+  },
+  "tidb": {
+    "native_version": "8.0.11-TiDB-v8.5.8",
+    "common_cases": [
+      "verified-tls-and-select",
+      "wrong-password",
+      "unauthorized-branch",
+      "missing-branch",
+      "wrong-ca",
+      "unsupported-sql",
+      "disconnect-rollback"
+    ],
+    "drivers": {
+      "mysql-cli": {
+        "version": [
+          "8.0.43"
+        ],
+        "cases": []
+      },
+      "connector-j": {
+        "version": [
+          "9.3.0",
+          "Java 21.0.11+10"
+        ],
+        "cases": [
+          "prepared-reuse-1",
+          "prepared-reuse-2",
+          "prepared-reuse-3",
+          "incorrect-binding"
+        ]
+      },
+      "pymysql": {
+        "version": [
+          "1.1.1",
+          "Python 3.12.14"
+        ],
+        "cases": [
+          "unknown-user",
+          "null-empty-bytes",
+          "transaction-visibility",
+          "rollback",
+          "savepoint-rollback"
+        ]
+      },
+      "go-sql-driver": {
+        "version": [
+          "v1.9.3",
+          "go1.26.2"
+        ],
+        "cases": [
+          "prepared-reuse-1",
+          "prepared-reuse-2",
+          "prepared-reuse-3",
+          "incorrect-binding"
+        ]
+      },
+      "connector-python": {
+        "version": [
+          "9.3.0",
+          "Python 3.12.14"
+        ],
+        "cases": [
+          "prepared-reuse-1",
+          "prepared-reuse-2",
+          "prepared-reuse-3",
+          "prepared-null-empty-bind",
+          "prepared-unsigned-bytes",
+          "incorrect-binding"
+        ]
+      },
+      "raw": {
+        "version": [
+          "Python 3.12.14"
+        ],
+        "cases": [
+          "tidb-raw-wire"
+        ]
+      }
+    }
+  },
+  "mongodb": {
+    "native_version": "7.0.48",
+    "common_cases": [
+      "mongo_insert_find_roundtrip",
+      "mongo_update_applies",
+      "mongo_delete_applies",
+      "mongo_duplicate_key_refused"
+    ],
+    "drivers": {
+      "pymongo": {
+        "cases": [
+          "mongo_driver_auth",
+          "mongo_aggregate_passthrough"
+        ],
+        "version": [
+          "4.19.0",
+          "7.0.48"
+        ]
+      }
+    }
+  }
+}

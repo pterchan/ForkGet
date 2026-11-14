@@ -1,0 +1,22 @@
+# Local editor state
+.zcode/
+
+# macOS
+.DS_Store
+
+# Rust build products
+/target
+**/*.rs.bk
+__pycache__/
+.forkget-state/
+/deploy/private/
+/deploy/operator.env
+/deploy/work/
+/tools/dumpling/fg-dumpling-run
+
+# Credentials and local environment
+.env
+.env.*
+
+# Generated local verification evidence
+/test/reports/

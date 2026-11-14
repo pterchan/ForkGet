@@ -1,0 +1,521 @@
+{
+  "format_version": 1,
+  "engine": "postgresql",
+  "name": "business-v1",
+  "logical_schema": "business",
+  "source_version": "PostgreSQL 16.14 (Debian 16.14-1.pgdg13+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+  "tables": [
+    {
+      "name": "customers",
+      "columns": [
+        {
+          "name": "id",
+          "sql_type": {
+            "kind": "integer",
+            "bits": 64
+          },
+          "nullable": false,
+          "collation": null,
+          "default": {
+            "kind": "generated"
+          }
+        },
+        {
+          "name": "code",
+          "sql_type": {
+            "kind": "text",
+            "length": 64
+          },
+          "nullable": false,
+          "collation": null,
+          "default": null
+        },
+        {
+          "name": "active",
+          "sql_type": {
+            "kind": "boolean"
+          },
+          "nullable": false,
+          "collation": null,
+          "default": null
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "primary_key_name": "customers_pkey",
+      "generated_key": "id",
+      "rows": 0,
+      "indexes": [
+        {
+          "name": "customers_code_key",
+          "columns": [
+            "code"
+          ],
+          "unique": true,
+          "is_constraint": true,
+          "deferrable": false,
+          "initially_deferred": false
+        }
+      ],
+      "foreign_keys": [],
+      "checks": []
+    },
+    {
+      "name": "lines",
+      "columns": [
+        {
+          "name": "id",
+          "sql_type": {
+            "kind": "integer",
+            "bits": 64
+          },
+          "nullable": false,
+          "collation": null,
+          "default": {
+            "kind": "generated"
+          }
+        },
+        {
+          "name": "order_id",
+          "sql_type": {
+            "kind": "integer",
+            "bits": 64
+          },
+          "nullable": false,
+          "collation": null,
+          "default": null
+        },
+        {
+          "name": "product_id",
+          "sql_type": {
+            "kind": "integer",
+            "bits": 64
+          },
+          "nullable": false,
+          "collation": null,
+          "default": null
+        },
+        {
+          "name": "reference",
+          "sql_type": {
+            "kind": "text",
+            "length": 64
+          },
+          "nullable": false,
+          "collation": null,
+          "default": null
+        },
+        {
+          "name": "quantity",
+          "sql_type": {
+            "kind": "integer",
+            "bits": 32
+          },
+          "nullable": false,
+          "collation": null,
+          "default": null
+        },
+        {
+          "name": "amount",
+          "sql_type": {
+            "kind": "decimal",
+            "precision": 12,
+            "scale": 2
+          },
+          "nullable": false,
+          "collation": null,
+          "default": null
+        },
+        {
+          "name": "active",
+          "sql_type": {
+            "kind": "boolean"
+          },
+          "nullable": false,
+          "collation": null,
+          "default": null
+        },
+        {
+          "name": "occurred_at",
+          "sql_type": {
+            "kind": "timestamp",
+            "precision": 6,
+            "timezone": false
+          },
+          "nullable": false,
+          "collation": null,
+          "default": null
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "primary_key_name": "lines_pkey",
+      "generated_key": "id",
+      "rows": 0,
+      "indexes": [
+        {
+          "name": "lines_reference_key",
+          "columns": [
+            "reference"
+          ],
+          "unique": true,
+          "is_constraint": true,
+          "deferrable": false,
+          "initially_deferred": false
+        }
+      ],
+      "foreign_keys": [
+        {
+          "name": "lines_order_id_fkey",
+          "columns": [
+            "order_id"
+          ],
+          "referenced_table": "orders",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_update": "no_action",
+          "on_delete": "no_action",
+          "deferrable": false,
+          "initially_deferred": false
+        },
+        {
+          "name": "lines_product_id_fkey",
+          "columns": [
+            "product_id"
+          ],
+          "referenced_table": "products",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_update": "no_action",
+          "on_delete": "no_action",
+          "deferrable": false,
+          "initially_deferred": false
+        }
+      ],
+      "checks": []
+    },
+    {
+      "name": "orders",
+      "columns": [
+        {
+          "name": "id",
+          "sql_type": {
+            "kind": "integer",
+            "bits": 64
+          },
+          "nullable": false,
+          "collation": null,
+          "default": {
+            "kind": "generated"
+          }
+        },
+        {
+          "name": "customer_id",
+          "sql_type": {
+            "kind": "integer",
+            "bits": 64
+          },
+          "nullable": false,
+          "collation": null,
+          "default": null
+        },
+        {
+          "name": "reference",
+          "sql_type": {
+            "kind": "text",
+            "length": 64
+          },
+          "nullable": false,
+          "collation": null,
+          "default": null
+        },
+        {
+          "name": "title",
+          "sql_type": {
+            "kind": "text",
+            "length": 64
+          },
+          "nullable": false,
+          "collation": null,
+          "default": null
+        },
+        {
+          "name": "version",
+          "sql_type": {
+            "kind": "integer",
+            "bits": 32
+          },
+          "nullable": false,
+          "collation": null,
+          "default": null
+        },
+        {
+          "name": "booked_on",
+          "sql_type": {
+            "kind": "date"
+          },
+          "nullable": false,
+          "collation": null,
+          "default": null
+        },
+        {
+          "name": "created_at",
+          "sql_type": {
+            "kind": "timestamp",
+            "precision": 6,
+            "timezone": false
+          },
+          "nullable": false,
+          "collation": null,
+          "default": {
+            "kind": "current_timestamp_precision",
+            "value": 6
+          }
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "primary_key_name": "orders_pkey",
+      "generated_key": "id",
+      "rows": 0,
+      "indexes": [
+        {
+          "name": "orders_reference_key",
+          "columns": [
+            "reference"
+          ],
+          "unique": true,
+          "is_constraint": true,
+          "deferrable": false,
+          "initially_deferred": false
+        }
+      ],
+      "foreign_keys": [
+        {
+          "name": "orders_customer_id_fkey",
+          "columns": [
+            "customer_id"
+          ],
+          "referenced_table": "customers",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_update": "no_action",
+          "on_delete": "no_action",
+          "deferrable": false,
+          "initially_deferred": false
+        }
+      ],
+      "checks": []
+    },
+    {
+      "name": "payments",
+      "columns": [
+        {
+          "name": "id",
+          "sql_type": {
+            "kind": "integer",
+            "bits": 64
+          },
+          "nullable": false,
+          "collation": null,
+          "default": {
+            "kind": "generated"
+          }
+        },
+        {
+          "name": "order_id",
+          "sql_type": {
+            "kind": "integer",
+            "bits": 64
+          },
+          "nullable": false,
+          "collation": null,
+          "default": null
+        },
+        {
+          "name": "customer_id",
+          "sql_type": {
+            "kind": "integer",
+            "bits": 64
+          },
+          "nullable": false,
+          "collation": null,
+          "default": null
+        },
+        {
+          "name": "reference",
+          "sql_type": {
+            "kind": "text",
+            "length": 64
+          },
+          "nullable": false,
+          "collation": null,
+          "default": null
+        },
+        {
+          "name": "amount",
+          "sql_type": {
+            "kind": "decimal",
+            "precision": 12,
+            "scale": 2
+          },
+          "nullable": false,
+          "collation": null,
+          "default": null
+        },
+        {
+          "name": "settled",
+          "sql_type": {
+            "kind": "boolean"
+          },
+          "nullable": false,
+          "collation": null,
+          "default": null
+        },
+        {
+          "name": "paid_on",
+          "sql_type": {
+            "kind": "date"
+          },
+          "nullable": false,
+          "collation": null,
+          "default": null
+        },
+        {
+          "name": "recorded_at",
+          "sql_type": {
+            "kind": "timestamp",
+            "precision": 6,
+            "timezone": false
+          },
+          "nullable": false,
+          "collation": null,
+          "default": null
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "primary_key_name": "payments_pkey",
+      "generated_key": "id",
+      "rows": 0,
+      "indexes": [
+        {
+          "name": "payments_reference_key",
+          "columns": [
+            "reference"
+          ],
+          "unique": true,
+          "is_constraint": true,
+          "deferrable": false,
+          "initially_deferred": false
+        }
+      ],
+      "foreign_keys": [
+        {
+          "name": "payments_customer_id_fkey",
+          "columns": [
+            "customer_id"
+          ],
+          "referenced_table": "customers",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_update": "no_action",
+          "on_delete": "no_action",
+          "deferrable": false,
+          "initially_deferred": false
+        },
+        {
+          "name": "payments_order_id_fkey",
+          "columns": [
+            "order_id"
+          ],
+          "referenced_table": "orders",
+          "referenced_columns": [
+            "id"
+          ],
+          "on_update": "no_action",
+          "on_delete": "no_action",
+          "deferrable": false,
+          "initially_deferred": false
+        }
+      ],
+      "checks": []
+    },
+    {
+      "name": "products",
+      "columns": [
+        {
+          "name": "id",
+          "sql_type": {
+            "kind": "integer",
+            "bits": 64
+          },
+          "nullable": false,
+          "collation": null,
+          "default": {
+            "kind": "generated"
+          }
+        },
+        {
+          "name": "sku",
+          "sql_type": {
+            "kind": "text",
+            "length": 64
+          },
+          "nullable": false,
+          "collation": null,
+          "default": null
+        },
+        {
+          "name": "unit_price",
+          "sql_type": {
+            "kind": "decimal",
+            "precision": 12,
+            "scale": 2
+          },
+          "nullable": false,
+          "collation": null,
+          "default": null
+        },
+        {
+          "name": "active",
+          "sql_type": {
+            "kind": "boolean"
+          },
+          "nullable": false,
+          "collation": null,
+          "default": null
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "primary_key_name": "products_pkey",
+      "generated_key": "id",
+      "rows": 0,
+      "indexes": [
+        {
+          "name": "products_sku_key",
+          "columns": [
+            "sku"
+          ],
+          "unique": true,
+          "is_constraint": true,
+          "deferrable": false,
+          "initially_deferred": false
+        }
+      ],
+      "foreign_keys": [],
+      "checks": []
+    }
+  ],
+  "document": null
+}

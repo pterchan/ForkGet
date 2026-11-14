@@ -1,0 +1,697 @@
+{
+  "schema_version": 1,
+  "qualification": "not_release_qualified",
+  "scope": "Executable source inventory only. A capability or resolvable case is not a passed release test. Qualify the exact public commit independently.",
+  "capabilities": [
+    {
+      "id": "relation.mysql",
+      "engines": [
+        "mysql"
+      ],
+      "status": "implemented_library",
+      "cases": [
+        "mysql_overlay_matches_golden_sql",
+        "quotes_each_identifier_component_without_splitting_dots",
+        "preserves_projection_order_and_uses_the_entire_key",
+        "scopes_both_arms_to_the_requested_branch_without_client_parameters",
+        "uses_generation_specific_physical_names_from_the_catalog",
+        "mysql_native_relation_fixture"
+      ],
+      "files": [
+        "crates/fg-rewrite/tests/visible_relation.rs",
+        "crates/fg-rewrite/tests/fixtures/mysql.sql",
+        "test/rewrite/mysql.py",
+        "test/rewrite/mysql.sql"
+      ]
+    },
+    {
+      "id": "relation.postgres",
+      "engines": [
+        "postgresql"
+      ],
+      "status": "implemented_library",
+      "cases": [
+        "postgres_overlay_matches_golden_sql",
+        "postgres_native_relation_fixture"
+      ],
+      "files": [
+        "crates/fg-rewrite/tests/visible_relation.rs",
+        "crates/fg-rewrite/tests/fixtures/postgres.sql",
+        "test/rewrite/postgres.py",
+        "test/rewrite/postgres.sql"
+      ]
+    },
+    {
+      "id": "relation.tidb",
+      "engines": [
+        "tidb"
+      ],
+      "status": "implemented_local",
+      "cases": [
+        "tidb_overlay_matches_golden_sql",
+        "mysql_native_relation_fixture",
+        "p2-tidb-differential-alpha",
+        "p2-tidb-differential-beta"
+      ],
+      "files": [
+        "crates/fg-rewrite/tests/visible_relation.rs",
+        "test/rewrite/mysql.sql"
+      ]
+    },
+    {
+      "id": "relation.mongodb",
+      "engines": [
+        "mongodb"
+      ],
+      "status": "implemented_local",
+      "cases": [
+        "mongo_merge_read_base",
+        "mongo_capture_write_delta",
+        "mongo_branch_isolation",
+        "mongo_budget_refusal",
+        "mongo_find_projection_sort_total",
+        "mongo_find_filter_multiset_amounts",
+        "mongo_count_reply",
+        "mongo_distinct_values",
+        "mongo_aggregate_count_documents_shape",
+        "mongo_insert_affected_then_read",
+        "mongo_update_affected",
+        "mongo_delete_affected",
+        "mongo_duplicate_key_is_unique_violation",
+        "mongo_unknown_operator_is_bad_value"
+      ],
+      "files": [
+        "crates/fg-proto-mongo/src/read.rs",
+        "crates/fg-proto-mongo/src/write.rs"
+      ]
+    },
+    {
+      "id": "metadata.validation",
+      "engines": [
+        "mysql",
+        "postgresql"
+      ],
+      "status": "implemented_library",
+      "cases": [
+        "rejects_nonpositive_branch_ids",
+        "rejects_missing_primary_keys",
+        "rejects_missing_or_duplicate_key_columns",
+        "rejects_empty_or_duplicate_projections",
+        "rejects_internal_column_collisions",
+        "rejects_empty_or_nul_identifiers",
+        "exposes_stable_actionable_errors"
+      ],
+      "files": [
+        "crates/fg-rewrite/tests/visible_relation.rs"
+      ]
+    },
+    {
+      "id": "sql.parser",
+      "engines": [
+        "mysql",
+        "postgresql"
+      ],
+      "status": "implemented_local_read_write",
+      "cases": [
+        "one_thousand_structural_round_trips_preserve_bind_tokens",
+        "scope_cases_preserve_logical_binding_and_relation_multiplicity",
+        "refusal_cases_use_exact_registry_categories",
+        "branch-alpha-reference-vs-proxy-and-prepared",
+        "branch-beta-reference-vs-proxy-and-prepared",
+        "prepared_points",
+        "generated_cases"
+      ],
+      "files": [
+        "crates/fg-rewrite/tests/read_compiler.rs",
+        "test/p2/corpus.py",
+        "test/p2/run.py",
+        "test/p3p4/write_cases.py"
+      ]
+    },
+    {
+      "id": "protocol.mysql",
+      "engines": [
+        "mysql"
+      ],
+      "status": "planned",
+      "cases": [
+        "mysql-raw-wire"
+      ],
+      "files": [
+        "test/protocol/drivers.json"
+      ]
+    },
+    {
+      "id": "protocol.postgres",
+      "engines": [
+        "postgresql"
+      ],
+      "status": "planned",
+      "cases": [
+        "postgresql-raw-wire"
+      ],
+      "files": [
+        "test/protocol/drivers.json"
+      ]
+    },
+    {
+      "id": "protocol.tidb",
+      "engines": [
+        "tidb"
+      ],
+      "status": "implemented_local",
+      "cases": [
+        "p2-tidb-lifecycle"
+      ],
+      "files": [
+        "crates/fg-proto-mysql/src/handshake.rs"
+      ]
+    },
+    {
+      "id": "protocol.mongodb",
+      "engines": [
+        "mongodb"
+      ],
+      "status": "implemented_local",
+      "cases": [
+        "p2-mongo-lifecycle",
+        "authentication_and_owner_isolation",
+        "legacy_hello_and_op_msg"
+      ],
+      "files": [
+        "crates/fg-proto-mongo/src/admission.rs",
+        "crates/fg-proto-mongo/tests/pymongo_branch_evidence.py",
+        "test/p2/mongo.py"
+      ]
+    },
+    {
+      "id": "write.insert_explicit",
+      "engines": [
+        "mysql",
+        "postgresql",
+        "mongodb"
+      ],
+      "status": "implemented_local",
+      "cases": [
+        "differential",
+        "prepared_points",
+        "mongo_write_insert_native",
+        "mongo_write_isolation"
+      ],
+      "files": [
+        "test/p3p4/write_cases.py",
+        "crates/fg-proto-mongo/src/command.rs"
+      ]
+    },
+    {
+      "id": "write.update_delete",
+      "engines": [
+        "mysql",
+        "postgresql",
+        "mongodb"
+      ],
+      "status": "implemented_local",
+      "cases": [
+        "prepared_points",
+        "constraint_cases",
+        "mongo_write_update_delete_native"
+      ],
+      "files": [
+        "test/p3p4/write_cases.py",
+        "crates/fg-proto-mongo/src/write.rs"
+      ]
+    },
+    {
+      "id": "write.generated_ids",
+      "engines": [
+        "mysql",
+        "postgresql"
+      ],
+      "status": "implemented_local_native_write",
+      "cases": [
+        "generated_cases",
+        "abandon_generated_portal"
+      ],
+      "files": [
+        "test/p3p4/write_cases.py",
+        "test/p3p4/pg_wire.py"
+      ]
+    },
+    {
+      "id": "write.transactions",
+      "engines": [
+        "mysql",
+        "postgresql"
+      ],
+      "status": "implemented_local_rc_rr",
+      "cases": [
+        "contention",
+        "deferred_cases",
+        "disconnect_rollback",
+        "lost_commit_response"
+      ],
+      "files": [
+        "test/p3p4/write_cases.py",
+        "test/p3p4/run.py",
+        "test/p3p4/pg_wire.py"
+      ]
+    },
+    {
+      "id": "lifecycle.branch",
+      "engines": [
+        "mysql",
+        "postgresql"
+      ],
+      "status": "planned",
+      "cases": [],
+      "files": []
+    },
+    {
+      "id": "lifecycle.local_dev",
+      "engines": [
+        "mysql",
+        "postgresql"
+      ],
+      "status": "implemented_local_read_write",
+      "cases": [
+        "forward-and-repeat-migrations",
+        "overprivileged-native-role-refused-before-activation",
+        "owner-authentication-and-branch-expiry",
+        "concurrent-live-name-conflict",
+        "interrupted-drop-resumes-after-restart",
+        "drop-drain-isolation-and-immutable-name-reuse",
+        "legacy_migration",
+        "provision_after_interruption",
+        "capacity",
+        "write_isolation",
+        "defaults"
+      ],
+      "files": [
+        "test/p2/run.py",
+        "test/p3p4/run.py",
+        "test/p5/run.py"
+      ]
+    },
+    {
+      "id": "lifecycle.local_ttl",
+      "engines": [
+        "mysql",
+        "postgresql"
+      ],
+      "status": "implemented_local_ttl",
+      "cases": [
+        "ttl_write",
+        "ttl_startup"
+      ],
+      "files": [
+        "test/p3p4/run.py"
+      ]
+    },
+    {
+      "id": "lifecycle.refresh",
+      "engines": [
+        "mysql",
+        "postgresql"
+      ],
+      "status": "implemented_local_repository_snapshots",
+      "cases": [
+        "refresh_to_v2",
+        "refresh_to_v3"
+      ],
+      "files": [
+        "test/p3p4/run.py"
+      ]
+    },
+    {
+      "id": "policy.dryrun",
+      "engines": [
+        "mysql",
+        "postgresql"
+      ],
+      "status": "implemented_local_policy_and_dryrun",
+      "cases": [
+        "defaults",
+        "budget",
+        "outage",
+        "approval_checks",
+        "approval_timeout_and_drop",
+        "audit",
+        "dryrun",
+        "dryrun_cleanup_recovery"
+      ],
+      "files": [
+        "test/p5/run.py"
+      ]
+    },
+    {
+      "id": "integration.rowdiff",
+      "engines": [
+        "mysql",
+        "postgresql"
+      ],
+      "status": "implemented_local_row_comparison",
+      "cases": [
+        "diffs",
+        "computes_net_changes_on_composite_keys"
+      ],
+      "files": [
+        "test/p5/run.py",
+        "crates/fg-proxy/src/rowdiff.rs"
+      ]
+    },
+    {
+      "id": "integration.github_app",
+      "engines": [
+        "mysql",
+        "postgresql"
+      ],
+      "status": "implemented_local_github_app",
+      "cases": [
+        "github_cases"
+      ],
+      "files": [
+        "test/p6/github.py"
+      ]
+    },
+    {
+      "id": "integration.ci",
+      "engines": [
+        "mysql",
+        "postgresql"
+      ],
+      "status": "implemented_local_ci",
+      "cases": [
+        "ci_cases"
+      ],
+      "files": [
+        "test/p6/run.py",
+        ".github/workflows/forkget-ci-example.yaml"
+      ]
+    },
+    {
+      "id": "integration.row_replay",
+      "engines": [
+        "mysql",
+        "postgresql"
+      ],
+      "status": "implemented_local_row_replay",
+      "cases": [
+        "replay_cases"
+      ],
+      "files": [
+        "test/p6/replay.py"
+      ]
+    },
+    {
+      "id": "verification.local_smoke",
+      "engines": [
+        "mysql",
+        "postgresql",
+        "tidb"
+      ],
+      "status": "implemented_local",
+      "cases": [
+        "benchmarks",
+        "compare_seeded",
+        "isolation"
+      ],
+      "files": [
+        "test/p7/run.py"
+      ]
+    },
+    {
+      "id": "verification.gate_tools",
+      "engines": [
+        "mysql",
+        "postgresql",
+        "tidb"
+      ],
+      "status": "implemented_local_gate_tools",
+      "cases": [
+        "run_differential",
+        "dryrun_trials",
+        "benchmarks",
+        "scale",
+        "test_nightly_proof_requires_fourteen_consecutive_dates"
+      ],
+      "files": [
+        "test/p7/gate.py",
+        "test/p7/gate_checks_test.py"
+      ]
+    },
+    {
+      "id": "deployment.managed_transport",
+      "engines": [
+        "mysql",
+        "postgresql",
+        "tidb",
+        "mongodb"
+      ],
+      "status": "implemented_local_private_transport_fixture",
+      "cases": [
+        "private_dns_tls_and_frontend",
+        "frontend_wrong_ca",
+        "backend_wrong_hostname",
+        "frontend_plaintext_refused"
+      ],
+      "files": [
+        "test/p7/transport_cases.py",
+        "test/p2/mongo.py"
+      ]
+    },
+    {
+      "id": "sql.ddl",
+      "engines": [
+        "mysql",
+        "postgresql"
+      ],
+      "status": "planned_rejection",
+      "cases": [],
+      "files": []
+    },
+    {
+      "id": "sql.locking_serializable",
+      "engines": [
+        "mysql",
+        "postgresql"
+      ],
+      "status": "planned_rejection",
+      "cases": [],
+      "files": []
+    },
+    {
+      "id": "sql.bulk_input",
+      "engines": [
+        "mysql",
+        "postgresql"
+      ],
+      "status": "planned_rejection",
+      "cases": [],
+      "files": []
+    },
+    {
+      "id": "branch.access_layout",
+      "engines": [
+        "mysql",
+        "postgresql",
+        "tidb",
+        "mongodb"
+      ],
+      "status": "implemented_local",
+      "cases": [
+        "default_read_only_branch",
+        "legacy_mongo_access_migration",
+        "base_only_read_strategy"
+      ],
+      "files": [
+        "test/p10/access_layout.py",
+        "crates/fg-meta/migrations/0014_branch_access_layout.sql"
+      ]
+    },
+    {
+      "id": "snapshot.mysql",
+      "engines": [
+        "mysql"
+      ],
+      "status": "implemented_local",
+      "cases": [
+        "consistent_native_capture",
+        "typed_catalog_import",
+        "failed_import_compensation",
+        "independent_source_backup_credentials",
+        "fail_closed_source_catalog_visibility"
+      ],
+      "files": [
+        "test/p7/snapshot_import.py",
+        "test/p10/source_roles.py"
+      ]
+    },
+    {
+      "id": "snapshot.postgres",
+      "engines": [
+        "postgresql"
+      ],
+      "status": "implemented_local",
+      "cases": [
+        "exported_snapshot_capture",
+        "staging_schema_remap",
+        "native_admission_refusals",
+        "independent_source_backup_credentials"
+      ],
+      "files": [
+        "test/p7/snapshot_import.py",
+        "test/p10/source_roles.py"
+      ]
+    },
+    {
+      "id": "snapshot.tidb",
+      "engines": [
+        "tidb"
+      ],
+      "status": "implemented_local",
+      "cases": [
+        "dumpling_shared_tso_capture",
+        "lightning_logical_namespace_route",
+        "failed_import_compensation"
+      ],
+      "files": [
+        "crates/fg-control/src/snapshot/tidb.rs"
+      ]
+    },
+    {
+      "id": "snapshot.mongodb",
+      "engines": [
+        "mongodb"
+      ],
+      "status": "implemented_local",
+      "cases": [
+        "external_frozen_source_capture",
+        "raw_bson_metadata_and_values",
+        "corrupt_bundle_compensation"
+      ],
+      "files": [
+        "test/p7/mongo_snapshot.py"
+      ]
+    },
+    {
+      "id": "application.sqlalchemy",
+      "engines": [
+        "mysql",
+        "postgresql",
+        "tidb"
+      ],
+      "status": "implemented_local",
+      "cases": [
+        "native_source_to_branch_business_profile",
+        "default_budget_rollback_and_reviewed_grant",
+        "reflection_bulk_versioning_and_explain",
+        "typed_export_replay_and_next_generated_key",
+        "five_linked_tables_exact_native_and_proxy_state",
+        "five_table_rollback_staged_quarantine_and_reviewed_cli_replay"
+      ],
+      "files": [
+        "test/application/run.py",
+        "test/application/README.md"
+      ]
+    },
+    {
+      "id": "policy.scoped_budgets",
+      "engines": [
+        "mysql",
+        "postgresql",
+        "tidb",
+        "mongodb"
+      ],
+      "status": "implemented_local",
+      "cases": [
+        "default_policy_migration_preserves_customization",
+        "independent_authorized_budget_review",
+        "effective_context_expiry_revoke_and_commit"
+      ],
+      "files": [
+        "crates/fg-meta/src/budget.rs"
+      ]
+    },
+    {
+      "id": "artifact.v2",
+      "engines": [
+        "mysql",
+        "postgresql",
+        "tidb",
+        "mongodb"
+      ],
+      "status": "implemented_local",
+      "cases": [
+        "complete_large_private_artifact",
+        "generated_id_and_v1_replay",
+        "raw_bson_exact_native_replay",
+        "staged_cli_independent_target_budget_and_no_reapply",
+        "capture_fence_cancellation_and_restart",
+        "partial_unknown_quarantine_and_verify_only"
+      ],
+      "files": [
+        "test/p10/artifacts.py",
+        "test/p10/mongo_artifacts.py",
+        "test/p10/staged_replay.py"
+      ]
+    },
+    {
+      "id": "lifecycle.recovery",
+      "engines": [
+        "mysql",
+        "postgresql",
+        "tidb",
+        "mongodb"
+      ],
+      "status": "implemented_local",
+      "cases": [
+        "renewal_is_cas_bounded_and_never_revives_expiry",
+        "retirement_is_durably_sealed_before_new_replay_pins",
+        "capture_fence_blocks_new_clients_and_recovers_after_interruption"
+      ],
+      "files": [
+        "crates/fg-meta/tests/lease_recovery.rs",
+        "crates/fg-meta/tests/replay_jobs.rs",
+        "test/p10/lease_recovery.py"
+      ]
+    },
+    {
+      "id": "diagnostics.capabilities",
+      "engines": [
+        "mysql",
+        "postgresql",
+        "tidb",
+        "mongodb"
+      ],
+      "status": "implemented_local",
+      "cases": [
+        "owner_status_and_capabilities",
+        "safe_counts_and_reasons",
+        "private_logical_explain"
+      ],
+      "files": [
+        "crates/fg-control/src/diagnostics.rs",
+        "crates/fg-protocol-common/src/errors.rs",
+        "test/application/README.md"
+      ]
+    },
+    {
+      "id": "storage.preflight",
+      "engines": [
+        "mysql",
+        "postgresql",
+        "tidb",
+        "mongodb"
+      ],
+      "status": "implemented_local",
+      "cases": [
+        "native_allocated_size_and_local_df",
+        "insufficient_attested_space_refused_before_allocation",
+        "unknown_native_space_is_estimated_only"
+      ],
+      "files": [
+        "crates/fg-control/src/capacity.rs"
+      ]
+    }
+  ]
+}

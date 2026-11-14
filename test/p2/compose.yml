@@ -1,0 +1,39 @@
+services:
+  native:
+    image: ${P2_NATIVE_IMAGE:?}
+    entrypoint: ["sh", "/suite/engine.sh", "${P2_ENGINE:?}", "native"]
+    environment:
+      MYSQL_ROOT_PASSWORD: ${P2_ADMIN_PASSWORD:?}
+      MYSQL_ROOT_HOST: "%"
+      MYSQL_DATABASE: p2_native
+      POSTGRES_PASSWORD: ${P2_ADMIN_PASSWORD:?}
+      POSTGRES_DB: p2_native
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    ports:
+      - "127.0.0.1::${P2_NATIVE_PORT:?}"
+    volumes:
+      - ${P2_CERT_DIR:?}:/certs:ro
+      - .:/suite:ro
+    healthcheck:
+      test: ["CMD", "sh", "/suite/engine.sh", "${P2_ENGINE:?}", "health"]
+      interval: 2s
+      timeout: 5s
+      retries: 45
+
+  metadata:
+    image: postgres:16.14
+    entrypoint: ["sh", "/suite/engine.sh", "postgresql", "metadata"]
+    environment:
+      POSTGRES_PASSWORD: ${P2_META_PASSWORD:?}
+      POSTGRES_DB: forkget_meta
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    ports:
+      - "127.0.0.1::5432"
+    volumes:
+      - ${P2_CERT_DIR:?}:/certs:ro
+      - .:/suite:ro
+    healthcheck:
+      test: ["CMD", "sh", "/suite/engine.sh", "postgresql", "health"]
+      interval: 2s
+      timeout: 5s
+      retries: 45

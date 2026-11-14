@@ -1,0 +1,140 @@
+x-driver: &driver
+  network_mode: service:native
+  environment:
+    FG_P1_FRONTEND_PASSWORD: ${FG_PROTOCOL_FRONTEND_PASSWORD:?}
+  volumes:
+    - ${FG_PROTOCOL_CERT_DIR:?}/frontend-ca.pem:/p1-tls/frontend-ca.pem:ro
+    - ${FG_PROTOCOL_CERT_DIR:?}/backend-ca.pem:/p1-tls/backend-ca.pem:ro
+
+services:
+  native:
+    image: ${FG_PROTOCOL_NATIVE_IMAGE:?}
+    entrypoint: ["sh", "/suite/native.sh"]
+    environment:
+      FG_PROTOCOL_ENGINE: ${FG_PROTOCOL_ENGINE:?}
+      FG_P1_FRONTEND_PASSWORD: ${FG_PROTOCOL_FRONTEND_PASSWORD:?}
+      FG_P1_BACKEND_PASSWORD: ${FG_PROTOCOL_BACKEND_PASSWORD:?}
+      MYSQL_ROOT_PASSWORD: ${FG_PROTOCOL_ADMIN_PASSWORD:?}
+      MYSQL_DATABASE: p1_native
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${FG_PROTOCOL_ADMIN_PASSWORD:?}
+      POSTGRES_DB: p1_native
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+      # MongoDB fixture: authentication is on; root uses the admin password.
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: ${FG_PROTOCOL_ADMIN_PASSWORD:?}
+      FG_P1_ADMIN_PASSWORD: ${FG_PROTOCOL_ADMIN_PASSWORD:?}
+    volumes:
+      - ${FG_PROTOCOL_CERT_DIR:?}/frontend-ca.pem:/p1-tls/frontend-ca.pem:ro
+      - ${FG_PROTOCOL_CERT_DIR:?}/backend-ca.pem:/p1-tls/backend-ca.pem:ro
+      - ${FG_PROTOCOL_CERT_DIR:?}/backend.pem:/p1-tls/backend.pem:ro
+      - ${FG_PROTOCOL_CERT_DIR:?}/backend.key:/p1-tls/backend.key:ro
+      - .:/suite:ro
+      - ./native-init.sh:/docker-entrypoint-initdb.d/10-p1-fixture.sh:ro
+    healthcheck:
+      # The TiDB image carries no MySQL client; its status endpoint stands in
+      # for the SQL health query.
+      test: ["CMD-SHELL",
+             "if [ \"$${FG_PROTOCOL_ENGINE}\" = tidb ]; then curl -sf http://127.0.0.1:10080/status; else sh /suite/native.sh health; fi"]
+      interval: 2s
+      timeout: 5s
+      retries: 45
+    networks: [fixture]
+
+  # The TiDB image ships no client; this sidecar shares the native network
+  # for fixture initialization and the driver/observer sessions.
+  client:
+    image: mysql:8.0.43
+    entrypoint: ["sleep", "infinity"]
+    network_mode: service:native
+    depends_on:
+      native:
+        condition: service_healthy
+    environment:
+      FG_PROTOCOL_ENGINE: ${FG_PROTOCOL_ENGINE:?}
+      FG_P1_FRONTEND_PASSWORD: ${FG_PROTOCOL_FRONTEND_PASSWORD:?}
+      FG_P1_BACKEND_PASSWORD: ${FG_PROTOCOL_BACKEND_PASSWORD:?}
+      FG_P1_NATIVE_PORT: ${FG_P1_NATIVE_PORT:-3306}
+    volumes:
+      - ${FG_PROTOCOL_CERT_DIR:?}/frontend-ca.pem:/p1-tls/frontend-ca.pem:ro
+      - ${FG_PROTOCOL_CERT_DIR:?}/backend-ca.pem:/p1-tls/backend-ca.pem:ro
+      - .:/suite:ro
+
+  # MySQL and PostgreSQL initialize through their entrypoint hooks; this
+  # one-shot applies the fixture only on the TiDB path (the "tidb" argument;
+  # the script no-ops on the other engines) and exits unchanged there.
+  init:
+    image: ${FG_PROTOCOL_INIT_IMAGE:-mysql:8.0.43}
+    entrypoint: ["sh", "/suite/native-init.sh", "${FG_PROTOCOL_INIT_ARG:-tidb}"]
+    network_mode: service:native
+    depends_on:
+      native:
+        condition: service_healthy
+    environment:
+      FG_PROTOCOL_ENGINE: ${FG_PROTOCOL_ENGINE:?}
+      FG_P1_BACKEND_PASSWORD: ${FG_PROTOCOL_BACKEND_PASSWORD:?}
+      MYSQL_ROOT_PASSWORD: ${FG_PROTOCOL_ADMIN_PASSWORD:?}
+      # MongoDB one-shot init needs the frontend password (mirror account).
+      FG_P1_FRONTEND_PASSWORD: ${FG_PROTOCOL_FRONTEND_PASSWORD:?}
+    volumes:
+      - ${FG_PROTOCOL_CERT_DIR:?}/backend-ca.pem:/p1-tls/backend-ca.pem:ro
+      - .:/suite:ro
+      - ./native-init.sh:/suite/native-init.sh:ro
+
+  fixture:
+    build:
+      context: ../..
+      dockerfile: test/protocol/Dockerfile
+      target: fixture
+    image: forkget-p1-fixture:local
+    command: ["${FG_PROTOCOL_ENGINE:?}"]
+    network_mode: service:native
+    depends_on:
+      native:
+        condition: service_healthy
+      init:
+        condition: service_completed_successfully
+    environment:
+      FG_P1_TLS_CERT: /p1-tls/frontend.pem
+      FG_P1_TLS_KEY: /p1-tls/frontend.key
+      FG_P1_BACKEND_CA: /p1-tls/backend-ca.pem
+      FG_P1_FRONTEND_PASSWORD: ${FG_PROTOCOL_FRONTEND_PASSWORD:?}
+      FG_P1_BACKEND_PASSWORD: ${FG_PROTOCOL_BACKEND_PASSWORD:?}
+      FG_P1_LISTEN_PORT: ${FG_PROTOCOL_LISTEN_PORT:?}
+    volumes:
+      - ${FG_PROTOCOL_CERT_DIR:?}/frontend.pem:/p1-tls/frontend.pem:ro
+      - ${FG_PROTOCOL_CERT_DIR:?}/frontend.key:/p1-tls/frontend.key:ro
+      - ${FG_PROTOCOL_CERT_DIR:?}/backend-ca.pem:/p1-tls/backend-ca.pem:ro
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/$$FG_P1_LISTEN_PORT"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  python:
+    <<: *driver
+    build:
+      context: ../..
+      dockerfile: test/protocol/Dockerfile
+      target: python-client
+    image: forkget-p1-python:local
+
+  go:
+    <<: *driver
+    build:
+      context: ../..
+      dockerfile: test/protocol/Dockerfile
+      target: go-client
+    image: forkget-p1-go:local
+
+  java:
+    <<: *driver
+    build:
+      context: ../..
+      dockerfile: test/protocol/Dockerfile
+      target: java-client
+    image: forkget-p1-java:local
+
+networks:
+  fixture:
+    internal: true
