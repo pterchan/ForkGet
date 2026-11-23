@@ -103,18 +103,20 @@ impl<W: AsyncWrite + Unpin, B: AsyncRead + AsyncWrite + Unpin> Relay<'_, W, B> {
         }
         self.write_metadata(&first).await?;
         self.columns(columns, output).await?;
+
+        // Metadata is already flushed. A stalled backend must not delay a row we have read.
         loop {
             let row = self.read().await?;
             match row.first() {
                 Some(&ERR) => return self.native_error(&row).await,
                 Some(&EOF) if row.len() < 9 => return self.eof(&row).await,
                 Some(_) => {
-                    if let Some(mapping) = mapping {
-                        let row = sanitize_plan_row(&row, mapping, binary)?;
-                        self.write(&row).await?;
+                    let row = if let Some(mapping) = mapping {
+                        sanitize_plan_row(&row, mapping, binary)?
                     } else {
-                        self.write(&row).await?;
-                    }
+                        row
+                    };
+                    self.write_packet(&row).await?;
                 }
                 None => return Err(packet::invalid()),
             }
@@ -203,6 +205,10 @@ impl<W: AsyncWrite + Unpin, B: AsyncRead + AsyncWrite + Unpin> Relay<'_, W, B> {
 
     pub(crate) async fn write(&mut self, message: &[u8]) -> io::Result<()> {
         self.flush_metadata().await?;
+        self.write_packet(message).await
+    }
+
+    async fn write_packet(&mut self, message: &[u8]) -> io::Result<()> {
         timeout(
             IO_TIMEOUT,
             packet::write(self.frontend, &mut self.front_sequence, message),

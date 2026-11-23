@@ -88,6 +88,12 @@ class TappedStream:
     def pending(self):
         return self.stream.pending()
 
+    def gettimeout(self):
+        return self.stream.gettimeout()
+
+    def settimeout(self, timeout):
+        self.stream.settimeout(timeout)
+
     def recv(self, size):
         return self.stream.recv(size)
 

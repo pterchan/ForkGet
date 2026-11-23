@@ -315,6 +315,48 @@ fn mongod_cursor_live(reply: &Document) -> bool {
         .unwrap_or(false)
 }
 
+/// Duplicate-key checks must see candidate IDs beyond mongod's default
+/// first batch of 101 documents. Bound the number of continuation requests
+/// to avoid holding a connection indefinitely.
+async fn drained_documents(
+    backend: &mut Backend,
+    collection: &str,
+    database: &str,
+    reply: Document,
+) -> Result<Vec<bson::Bson>, WireError> {
+    const MAX_DRAIN_PAGES: usize = 4_096;
+    let mut documents = first_batch(&reply)?;
+    let mut cursor_id = reply
+        .get_document("cursor")
+        .and_then(|cursor| cursor.get_i64("id"))
+        .unwrap_or(0);
+    for _ in 0..MAX_DRAIN_PAGES {
+        if cursor_id == 0 {
+            return Ok(documents);
+        }
+        let get_more = doc! {
+            "getMore": cursor_id,
+            "collection": collection,
+            "$db": database,
+        };
+        let page = backend
+            .command(&get_more)
+            .await
+            .map_err(|_| WireError::Backend)?;
+        let cursor = page
+            .get_document("cursor")
+            .map_err(|_| WireError::Backend)?;
+        documents.extend(
+            cursor
+                .get_array("nextBatch")
+                .map_err(|_| WireError::Backend)?
+                .clone(),
+        );
+        cursor_id = cursor.get_i64("id").unwrap_or(0);
+    }
+    Err(WireError::Backend)
+}
+
 async fn run_merged(
     backend: &mut Backend,
     entry: &CatalogEntry,
@@ -423,13 +465,13 @@ async fn count(
     command: &CommandContext<'_>,
 ) -> Result<Vec<u8>, WireError> {
     let collection = collection_name(command)?;
-    let entry = catalog_entry(bound, &collection)?;
+    let (entry, native) = resolve_entry(bound, &collection)?;
     let branch_id = bound.branch_id();
     let stages = read::count_stages(command.document);
     let reply_document = run_merged(
         backend,
         &entry,
-        read::merged_pipeline(&entry, branch_id, stages, false),
+        read::step_pipeline(&entry, branch_id, stages, false, native),
         None,
     )
     .await?;
@@ -451,34 +493,43 @@ async fn distinct(
     command: &CommandContext<'_>,
 ) -> Result<Vec<u8>, WireError> {
     let collection = collection_name(command)?;
-    let entry = catalog_entry(bound, &collection)?;
+    let (entry, native) = resolve_entry(bound, &collection)?;
     let branch_id = bound.branch_id();
     let key = command
         .document
         .get_str("key")
         .map_err(|_| WireError::InvalidValue)?;
-    let stages = read::distinct_stages(key, command.document);
+    let size_refusal = refusal(
+        WireError::Unsupported,
+        "distinct result exceeds the 16 MiB BSON limit; narrow the query",
+    );
+    let stages = read::distinct_stages(key, command.document, &size_refusal);
     let reply_document = run_merged(
         backend,
         &entry,
-        read::merged_pipeline(&entry, branch_id, stages, false),
+        read::step_pipeline(&entry, branch_id, stages, false, native),
         None,
     )
     .await?;
-    let values: Vec<bson::Bson> = first_batch(&reply_document)?
-        .iter()
-        .filter_map(|value| {
-            value
-                .as_document()
-                .and_then(|document| document.get("_id"))
-                .cloned()
-        })
-        .collect();
-    ok_reply(
-        command.connection_id,
-        command.request.request_id,
-        &doc! { "values": values, "ok": 1.0 },
-    )
+    let empty = doc! { "values": [], "ok": 1.0 };
+    let result = match reply_document.get_str("codeName") {
+        Ok("BSONObjectTooLarge") => &size_refusal,
+        Ok("ExceededMemoryLimit" | "QueryExceededMemoryLimitNoDiskUseAllowed") => {
+            return Err(WireError::Unsupported);
+        }
+        _ => {
+            let batch = reply_document
+                .get_document("cursor")
+                .and_then(|cursor| cursor.get_array("firstBatch"))
+                .map_err(|_| WireError::Backend)?;
+            match batch.as_slice() {
+                [] => &empty,
+                [bson::Bson::Document(result)] => result,
+                _ => return Err(WireError::Backend),
+            }
+        }
+    };
+    ok_reply(command.connection_id, command.request.request_id, result)
 }
 
 async fn get_more(
@@ -850,15 +901,21 @@ async fn captured_ids(
         None,
     )
     .await?;
-    let mut taken: Vec<bson::Bson> = first_batch(&reply)?
-        .iter()
-        .filter_map(|value| {
-            value
-                .as_document()
-                .and_then(|document| document.get("_id"))
-                .cloned()
-        })
-        .collect();
+    let mut taken: Vec<bson::Bson> = drained_documents(
+        backend,
+        entry.base_table.as_str(),
+        entry.base_schema.as_str(),
+        reply,
+    )
+    .await?
+    .iter()
+    .filter_map(|value| {
+        value
+            .as_document()
+            .and_then(|document| document.get("_id"))
+            .cloned()
+    })
+    .collect();
     let delta = doc! {
         "find": entry.delta_table.as_str(),
         "filter": {
@@ -873,7 +930,14 @@ async fn captured_ids(
         .command(&delta)
         .await
         .map_err(|_| WireError::Backend)?;
-    taken.extend(first_batch(&reply)?.iter().filter_map(|value| {
+    let delta_hits = drained_documents(
+        backend,
+        entry.delta_table.as_str(),
+        entry.delta_schema.as_str(),
+        reply,
+    )
+    .await?;
+    taken.extend(delta_hits.iter().filter_map(|value| {
         value
             .as_document()
             .and_then(|document| document.get_document("_doc").ok())

@@ -5,7 +5,8 @@ use std::{
 };
 
 use fg_protocol_common::{
-    Config, FrontendAccount, ManagedBackend, Router, loopback_http, valid_managed_role,
+    Config, FrontendAccount, ManagedBackend, Router, admit_tidb_backend, loopback_http,
+    valid_managed_role,
 };
 use percent_encoding::percent_decode_str;
 use reqwest::Url;
@@ -166,7 +167,10 @@ impl Backend {
         let engine = match url.scheme() {
             "mysql" => Engine::MySql,
             "postgres" | "postgresql" => Engine::Postgres,
-            "tidb" => Engine::TiDB,
+            "tidb" => {
+                admit_tidb_backend()?;
+                Engine::TiDB
+            }
             "mongodb" => Engine::MongoDb,
             _ => return Err(invalid()),
         };
@@ -402,6 +406,16 @@ fn origin(setting: &'static str, default: &str) -> Result<Url, Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn admits_tidb_dsn_only_in_experimental_build() {
+        let result = Backend::parse("tidb://fg_service:pw@127.0.0.1/app", None);
+        if fg_protocol_common::TIDB_BACKEND_AVAILABLE {
+            assert!(matches!(result, Ok(backend) if backend.engine == Engine::TiDB));
+        } else {
+            assert!(matches!(result, Err(Error::UnsupportedTidb(_))));
+        }
+    }
 
     #[test]
     fn accepts_explicit_private_listener_only_in_managed_mode() {

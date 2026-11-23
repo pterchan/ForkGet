@@ -56,6 +56,7 @@ pub(super) struct Replay {
 enum ReplayEngine {
     Mysql,
     Postgresql,
+    #[value(hide = !fg_protocol_common::TIDB_BACKEND_AVAILABLE)]
     Tidb,
     Mongodb,
 }
@@ -137,6 +138,9 @@ pub(super) async fn export(control: &Control, options: Export) -> Result<Value, 
 }
 
 pub(super) async fn run(control: &Control, options: Replay) -> Result<Outcome, Error> {
+    if matches!(options.engine, ReplayEngine::Tidb) {
+        fg_protocol_common::admit_tidb_backend()?;
+    }
     if let Some(job) = options.verify_job {
         let result = action(control, job, "verify").await?;
         return Ok(outcome(result));

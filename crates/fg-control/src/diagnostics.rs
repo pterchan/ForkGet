@@ -169,6 +169,10 @@ async fn backend() -> Value {
     .await;
     match check {
         Ok(()) => json!({"component":"native_gc_connection","ok":true}),
+        Err(ControlError::UnsupportedTidb(error)) => {
+            json!({"component":"native_gc_connection","ok":false,
+            "reason":"unsupported_backend_engine","hint":error.to_string()})
+        }
         Err(_) => json!({"component":"native_gc_connection","ok":false,
             "reason":"native_endpoint_role_or_tls_unavailable","hint":"check FG_BACKEND_GC_DSN, FG_BACKEND_GC_USER and FG_BACKEND_CA"}),
     }
@@ -181,7 +185,10 @@ fn engine() -> Result<&'static str, ControlError> {
     match dsn.split(':').next() {
         Some("mysql") => Ok("mysql"),
         Some("postgres" | "postgresql") => Ok("postgresql"),
-        Some("tidb") => Ok("tidb"),
+        Some("tidb") => {
+            fg_protocol_common::admit_tidb_backend()?;
+            Ok("tidb")
+        }
         Some("mongodb") => Ok("mongodb"),
         _ => Err(ControlError::Config("native DSN scheme")),
     }

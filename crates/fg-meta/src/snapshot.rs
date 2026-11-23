@@ -95,7 +95,7 @@ impl Metadata {
         crate::catalog::lock_generation_pin(&mut tx).await?;
         let live: i64 = sqlx::query_scalar("SELECT count(*) FROM generation WHERE status IN ('importing','active','retiring') OR (status='failed' AND native_claimed)")
             .fetch_one(&mut *tx).await?;
-        if live >= 2 {
+        if live >= crate::catalog::LIVE_GENERATION_LIMIT {
             return Err(MetaError::GenerationRetention);
         }
         let wrong_engine: bool = sqlx::query_scalar(

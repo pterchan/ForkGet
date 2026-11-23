@@ -1,5 +1,7 @@
 # Native audit and recovery tests
 
+English · [简体中文](README.zh-CN.md)
+
 These fixtures exercise durable intent, native SQL witnesses, truthful MongoDB
 observations, audit-delivery failures and cleanup boundaries. They create owned
 disposable databases. Do not point them at user or production data.

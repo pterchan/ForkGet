@@ -1,9 +1,10 @@
 # From a source snapshot to a saved result
 
+English · [简体中文](workflow.zh-CN.md)
+
 Use the [installation guide](install.md) to capture and import an admitted source
 schema. Keep source backup credentials separate from serving credentials. Check
 [supported objects and queries](support-matrix.md) before running an application.
-TiDB's [concurrent foreign-key limitation](limitations.md) remains unresolved.
 
 ## Create and connect
 

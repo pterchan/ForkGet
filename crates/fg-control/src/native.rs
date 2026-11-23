@@ -5,7 +5,10 @@ pub(crate) use ddl::{DdlError, mysql_table_checks};
 
 use std::{net::IpAddr, path::Path, str::FromStr};
 
-use fg_protocol_common::{CatalogEntry, ManagedBackend};
+use fg_protocol_common::{
+    CatalogEntry, ManagedBackend, TIDB_BACKEND_AVAILABLE, admit_tidb_backend,
+    check_mysql_backend_version,
+};
 use mongodb::{
     Client,
     options::{ClientOptions, Credential, ServerAddress, Tls, TlsOptions},
@@ -161,6 +164,7 @@ impl NativeOptions {
             return Ok(Self::MySql(options));
         }
         if dsn.starts_with("tidb://") {
+            admit_tidb_backend()?;
             // sqlx only parses the mysql:// scheme; the engine identity stays
             // TiDB so its version and privilege checks still apply.
             let wire_dsn = dsn.replacen("tidb://", "mysql://", 1);
@@ -260,12 +264,19 @@ impl NativeOptions {
                 .map(Native::Postgres),
             Self::Mongo(_) => unreachable!("handled above"),
         };
-        result.map_err(|error| {
+        let mut native = result.map_err(|error| {
             tracing::error!(component = "native", engine = self.engine().name(),
                 role = self.username(), failure = %crate::native_failure(&error),
                 "native connection failed; check the role, database and CA in the backend DSN setting");
             ControlError::Native(error)
-        })
+        })?;
+        if !TIDB_BACKEND_AVAILABLE && let Native::MySql(connection) = &mut native {
+            let version: String = sqlx::query_scalar("SELECT VERSION()")
+                .fetch_one(connection)
+                .await?;
+            check_mysql_backend_version(version.as_bytes())?;
+        }
+        Ok(native)
     }
 }
 
@@ -453,6 +464,23 @@ mod tests {
     use std::path::Path;
 
     use super::{NativeOptions, is_loopback_host};
+
+    #[test]
+    fn admits_tidb_dsn_only_in_experimental_build() {
+        let result = NativeOptions::new(
+            "tidb://role:unused@127.0.0.1/app",
+            Path::new("/unused-ca"),
+            None,
+        );
+        if fg_protocol_common::TIDB_BACKEND_AVAILABLE {
+            assert!(matches!(result, Ok(NativeOptions::TiDB(_))));
+        } else {
+            assert!(matches!(
+                result,
+                Err(crate::ControlError::UnsupportedTidb(_))
+            ));
+        }
+    }
 
     #[test]
     fn shortened_refresh_cooldown_is_confined_to_local_endpoints() {

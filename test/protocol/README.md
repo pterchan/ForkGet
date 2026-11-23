@@ -1,5 +1,7 @@
 # Isolated protocol checks
 
+English · [简体中文](README.zh-CN.md)
+
 Run from the repository root with Docker Compose, OpenSSL and Python 3:
 
 ```sh

@@ -1,6 +1,9 @@
 # Forkget Console
 
-A static Svelte application served by the control service. See the
+English · [简体中文](README.zh-CN.md)
+
+The static Console for **Forkget 0.1.1**, served by the control
+service. See the
 [Console guide](../../doc/console.md) for normal use and
 [installation](../../doc/install.md) for packaged deployment. Runtime serving
 requires no Vite or Node.js process.

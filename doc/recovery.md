@@ -1,5 +1,7 @@
 # Result retention and recovery
 
+English · [简体中文](recovery.zh-CN.md)
+
 Save a complete result while its source branch and baseline remain available:
 
 ```sh

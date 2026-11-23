@@ -3,7 +3,7 @@
 use std::io;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use fg_protocol_common::{Config, FrontendAccount, WireError};
+use fg_protocol_common::{Config, FrontendAccount, WireError, check_mysql_backend_version};
 use rand::{RngCore, rngs::OsRng};
 use sha2::{Digest, Sha256};
 use subtle::ConstantTimeEq;
@@ -249,7 +249,8 @@ fn parse_backend_greeting(greeting: &[u8]) -> io::Result<(u32, [u8; NONCE_LEN], 
     if fields.byte()? != 10 {
         return Err(packet::invalid());
     }
-    fields.cstring()?;
+    let version = fields.cstring()?;
+    check_mysql_backend_version(version).map_err(io::Error::other)?;
     let connection_id = fields.u32()?;
     let mut nonce = [0; NONCE_LEN];
     nonce[..8].copy_from_slice(fields.take(8)?);
@@ -371,6 +372,20 @@ async fn reject<T>(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn admits_tidb_greeting_only_in_experimental_build() -> io::Result<()> {
+        let mysql = greeting(false)?;
+        assert!(parse_backend_greeting(&mysql).is_ok());
+        let mut tidb = vec![10];
+        push_cstring(&mut tidb, b"8.0.11-TiDB-v8.5.8");
+        tidb.extend_from_slice(&mysql[FIXTURE_VERSION.len() + 2..]);
+        assert_eq!(
+            parse_backend_greeting(&tidb).is_ok(),
+            fg_protocol_common::TIDB_BACKEND_AVAILABLE,
+        );
+        Ok(())
+    }
 
     #[tokio::test]
     async fn row_budget_details_reach_mysql_clients() -> io::Result<()> {

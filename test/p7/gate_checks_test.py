@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 import gate_seed_native
 
-from gate import FAMILIES, NIGHTLY_CASES, SEED, verify_nights
+from gate import FAMILIES, NIGHTLY_CASES, SEED, smoke, verify_nights
 from gate_workloads import BENCHMARK_POLICY, BENCHMARK_TARGETS, benchmark_ok, check_ratios
 from compare_perf_runs import recorded_target
 from run_p2 import Failure, json_file
@@ -34,9 +34,9 @@ def benchmark_evidence(**changes):
             "performance_targets": dict(BENCHMARK_TARGETS)}
 
 
-def night(root, index, started, *, revision=REVISION, skipped=None, selected=None):
+def night(root, index, started, *, revision, selected, skipped=None):
     evidence = root / f"fixture-p7gate-{index}"
-    engines = {engine: {"status": "passed"} for engine in (selected or ("mysql", "postgresql", "tidb"))}
+    engines = {engine: {"status": "passed"} for engine in selected}
     evidence.mkdir()
     json_file(evidence / "report.json", {"status": "passed", "started_at": started.isoformat(),
               "engines": engines})
@@ -111,33 +111,49 @@ class NativeRegressionEvidenceChecks(unittest.TestCase):
 
 
 class EvidenceChecks(unittest.TestCase):
+    def setUp(self):
+        self.revision, _ = smoke.p6.p5.p34.p2.git_state()
+        self.engines = smoke.p6.qualification_sql_engines(self.revision)
+
+    def test_nightly_scope_reads_the_requested_commit(self):
+        dependency = '[workspace.dependencies]\nfg-protocol-common = { path = "crates/fg-protocol-common"'
+        for features, expected in (
+            ("", ("mysql", "postgresql", "tidb")),
+            (', features = ["no-tidb"]', ("mysql", "postgresql")),
+        ):
+            with self.subTest(features=features):
+                with patch.object(smoke.p6.subprocess, "check_output", return_value=dependency + features + " }") as git:
+                    self.assertEqual(smoke.p6.qualification_sql_engines(self.revision), expected)
+                git.assert_called_once_with(["git", "show", f"{self.revision}:Cargo.toml"], cwd=smoke.p6.ROOT, text=True)
+
     def test_nightly_proof_rejects_missing_or_extra_engines(self):
-        for engines in (("mysql", "postgresql"), ("mysql", "postgresql", "tidb", "mongodb")):
+        invalid_scopes = [self.engines[:-1], (*self.engines, "mongodb")]
+        if "tidb" not in self.engines:
+            invalid_scopes.append((*self.engines, "tidb"))
+        for engines in invalid_scopes:
             with self.subTest(engines=engines), tempfile.TemporaryDirectory() as temp:
                 directory = Path(temp)
                 first = datetime.now(UTC) - timedelta(days=14)
                 for offset in range(14):
-                    night(directory, offset, first + timedelta(days=offset), selected=engines)
+                    night(directory, offset, first + timedelta(days=offset), selected=engines, revision=self.revision)
                 with self.assertRaises(Failure):
-                    verify_nights(directory, REVISION)
+                    verify_nights(directory, self.revision)
 
     def test_nightly_proof_requires_fourteen_consecutive_dates(self):
         with tempfile.TemporaryDirectory() as temp:
             directory = Path(temp)
             first = datetime.now(UTC) - timedelta(days=14)
             for offset in range(13):
-                night(directory, offset, first + timedelta(days=offset))
-            night(directory, "duplicate", first)
-            night(directory, "future", datetime.now(UTC) + timedelta(days=7))
-            night(directory, "skipped", first + timedelta(days=13), skipped=["unsupported"])
-            night(directory, "foreign", first + timedelta(days=13), revision="b" * 40)
+                night(directory, offset, first + timedelta(days=offset), selected=self.engines, revision=self.revision)
+            night(directory, "duplicate", first, selected=self.engines, revision=self.revision)
+            night(directory, "future", datetime.now(UTC) + timedelta(days=7), selected=self.engines, revision=self.revision)
+            night(directory, "skipped", first + timedelta(days=13), selected=self.engines, revision=self.revision,
+                  skipped=["unsupported"])
+            night(directory, "foreign", first + timedelta(days=13), selected=self.engines, revision="b" * 40)
             with self.assertRaises(Failure):
-                verify_nights(directory, REVISION)
-            night(directory, "fourteenth", first + timedelta(days=13))
-            self.assertEqual(len(verify_nights(directory, REVISION)), 14)
-
-
-
+                verify_nights(directory, self.revision)
+            night(directory, "fourteenth", first + timedelta(days=13), selected=self.engines, revision=self.revision)
+            self.assertEqual(len(verify_nights(directory, self.revision)), 14)
 
 if __name__ == "__main__":
     unittest.main()

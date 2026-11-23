@@ -1,8 +1,12 @@
 {
   "name": "@forkget/console",
-  "version": "0.1.0-rc.1",
+  "version": "0.1.1",
+  "license": "MIT",
   "private": true,
   "type": "module",
+  "forkget": {
+    "connectionEngines": ["postgresql", "mysql", "mongodb"]
+  },
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 4193 --strictPort",
     "build": "vite build",

@@ -15,7 +15,7 @@ percent-encoding = "2"
 axum = { workspace = true, features = ["query"] }
 base64.workspace = true
 fg-meta = { path = "../fg-meta" }
-fg-protocol-common = { path = "../fg-protocol-common", default-features = false, features = ["routing"] }
+fg-protocol-common = { workspace = true, features = ["routing"] }
 hmac.workspace = true
 jiff.workspace = true
 reqwest = { workspace = true, features = ["rustls-tls-native-roots", "stream"] }

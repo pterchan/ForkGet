@@ -1,5 +1,7 @@
 # Connect an application
 
+English · [简体中文](connecting.zh-CN.md)
+
 For SQL, the frontend database field selects the branch name. MongoDB binds
 the connection when its first branch data command names that database.
 Use an operator-issued
@@ -10,13 +12,16 @@ refused even when the underlying database supports them.
 
 | Listener | Default |
 | --- | --- |
-| MySQL / TiDB | `127.0.0.1:3306` |
+| MySQL | `127.0.0.1:3306` |
 | PostgreSQL | `127.0.0.1:5432` |
 | MongoDB | `127.0.0.1:28017` |
 
 Change ports if local services already use them. Replace example account,
 branch and CA paths with your actual deployment values. CLI examples prompt
-for the password; do not paste a secret into a shell command or report.
+for the password; do not paste a secret into a shell command or report. For the
+local Compose setup, use `deploy/private/frontend-ca.pem` from the repository
+root and privately retrieve the matching frontend account password from
+`FG_FRONTEND_ACCOUNTS` in `deploy/operator.env`.
 
 ```sh
 mysql --host 127.0.0.1 --port 3306 --user owner --database first-task \
@@ -25,11 +30,6 @@ mysql --host 127.0.0.1 --port 3306 --user owner --database first-task \
 psql "host=127.0.0.1 port=5432 dbname=first-task user=owner \
   sslmode=verify-full sslrootcert=frontend-ca.pem"
 ```
-
-The same MySQL frontend example applies to a TiDB deployment. TiDB serving
-configuration uses a `tidb://` backend DSN and requires CHECK enforcement and
-native metadata locking. Its unresolved concurrent-FK path can commit an orphan;
-Forkget does not reliably refuse it. See the [correctness limitation](limitations.md).
 
 ## SQLAlchemy
 
@@ -60,6 +60,9 @@ features to work around an admission error. Check the [supported subset](support
 and the returned FG reason before changing the application.
 
 ## MongoDB pool ownership
+
+MongoDB `distinct` returns the complete sorted set within the 16 MiB BSON reply
+limit. Narrow the query if the proxy returns `FG-2002` for an oversized set.
 
 Create an independent client for every branch, not one client whose default
 database is repeatedly switched. The proxy binds the connection to the first

@@ -1,5 +1,7 @@
 # Web Console
 
+English · [简体中文](console.zh-CN.md)
+
 Compose serves the packaged Console at <http://127.0.0.1:8081/>. For a remote
 deployment, keep control on loopback and forward it explicitly:
 

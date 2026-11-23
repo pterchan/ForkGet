@@ -1,5 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { connectionCommand, defaultPort, defaultSettings } from './connection';
+import { forkget } from '../../package.json';
+import { connectionCommand, connectionEngines, defaultPort, defaultSettings, readConnectionSettings } from './connection';
+
+describe('stored connection preferences', () => {
+  const saved = { ...defaultSettings, engine: 'mysql', host: 'db.example', port: '13306', username: 'owner', caFile: 'db-ca.pem' };
+
+  it('keeps a supported engine and its endpoint', () => {
+    expect(readConnectionSettings(saved)).toEqual(saved);
+  });
+
+  it('resets the entire connection when its engine is excluded', () => {
+    expect(connectionEngines.map(({ value }) => value)).toEqual(forkget.connectionEngines);
+    expect(readConnectionSettings({ ...saved, engine: 'unknown' })).toEqual(defaultSettings);
+
+    const tidb = { ...saved, engine: 'tidb' };
+    const expected = forkget.connectionEngines.includes('tidb') ? tidb : defaultSettings;
+    expect(readConnectionSettings(tidb)).toEqual(expected);
+  });
+});
+
 describe('native client command generation', () => {
   it('selects the branch database and retains verified TLS', () => {
     expect(connectionCommand({ ...defaultSettings, username: 'alice' }, 'branch-one')).toContain("--dbname 'branch-one'");

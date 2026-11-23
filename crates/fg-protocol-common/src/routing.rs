@@ -1561,3 +1561,55 @@ mod tests {
         assert!(!valid_branch_name("has_underscore"));
     }
 }
+
+#[cfg(test)]
+mod loopback_gate_tests {
+    //! The control client sends credentials only to literal loopback origins.
+
+    use super::{ReplayOrigin, loopback_http};
+
+    fn rejected(url: &str) {
+        assert!(
+            loopback_http(url).is_none(),
+            "loopback_http must reject {url}"
+        );
+    }
+
+    #[test]
+    fn loopback_gate_rejects_non_conforming_urls() {
+        rejected("https://127.0.0.1/");
+        rejected("http://localhost/");
+        rejected("http://user:secret@127.0.0.1/");
+        rejected("http://127.0.0.1/?x=1");
+        rejected("http://127.0.0.1/#fragment");
+        rejected("http://127.0.0.1/api");
+        rejected("http://10.0.0.1/");
+        rejected("ftp://127.0.0.1/");
+        rejected("http://0.0.0.0/");
+    }
+
+    #[test]
+    fn loopback_gate_accepts_only_the_exact_shape() {
+        assert!(loopback_http("http://127.0.0.1:8081/").is_some());
+        // IPv6 loopback is still loopback: accepted by design.
+        assert!(loopback_http("http://[::1]/").is_some());
+    }
+
+    #[test]
+    fn replay_origin_rejects_malformed_values() {
+        fn origin(deployment: &str, generation: i64, snapshot: &str) -> ReplayOrigin {
+            ReplayOrigin {
+                deployment_id: deployment.to_owned(),
+                generation_id: generation,
+                snapshot: snapshot.to_owned(),
+            }
+        }
+        let good = "0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0";
+        assert!(origin(good, 1, "v2").is_valid());
+        assert!(!origin("", 1, "v2").is_valid());
+        assert!(!origin("not-hex-at-all!!", 1, "v2").is_valid());
+        assert!(!origin("deadbeef", 1, "v2").is_valid());
+        assert!(!origin(good, 0, "v2").is_valid());
+        assert!(!origin(good, 1, "").is_valid());
+    }
+}

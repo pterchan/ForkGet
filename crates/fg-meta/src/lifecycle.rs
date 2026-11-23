@@ -5,7 +5,7 @@ use sqlx::{FromRow, PgConnection};
 use crate::{MetaError, Metadata};
 
 pub const MAX_TTL_SECONDS: u32 = 24 * 60 * 60;
-const WRITE_CAPACITY: i64 = 16;
+pub(crate) const WRITE_CAPACITY: i64 = 16;
 const WRITE_CAPACITY_LOCK: i64 = 0x4647_0000_0000_0003;
 const EXPIRY_BATCH_SIZE: i64 = 64;
 

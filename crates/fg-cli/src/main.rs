@@ -170,6 +170,8 @@ struct AuditArgs {
 
 #[derive(Debug, thiserror::Error)]
 enum Error {
+    #[error(transparent)]
+    UnsupportedTidb(#[from] fg_protocol_common::UnsupportedTidbBackend),
     #[error("Set FG_OWNER_TOKEN to an owner API token")]
     Token,
     #[error("Set FG_CONTROL_URL to an HTTP origin on loopback")]

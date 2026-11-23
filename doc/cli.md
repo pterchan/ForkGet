@@ -1,5 +1,7 @@
 # Owner and operator commands
 
+English · [简体中文](cli.zh-CN.md)
+
 `forkget` is the owner CLI. Set `FG_OWNER_TOKEN` privately and use
 `FG_CONTROL_URL` for the HTTP loopback control origin (default
 `http://127.0.0.1:8081`). Remote owners use an SSH tunnel. Success prints JSON;

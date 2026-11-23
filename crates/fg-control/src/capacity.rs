@@ -68,8 +68,15 @@ impl StoragePreflight {
 }
 
 pub(crate) fn native_available() -> Result<Option<u64>, CapacityError> {
-    match env::var("FG_NATIVE_FREE_BYTES") {
-        Ok(value) if !value.is_empty() && value.bytes().all(|byte| byte.is_ascii_digit()) => {
+    parse_native_available(env::var("FG_NATIVE_FREE_BYTES"))
+}
+
+fn parse_native_available(
+    value: Result<String, env::VarError>,
+) -> Result<Option<u64>, CapacityError> {
+    match value {
+        Ok(value) if value.is_empty() => Ok(None),
+        Ok(value) if value.bytes().all(|byte| byte.is_ascii_digit()) => {
             value.parse().map(Some).map_err(|_| {
                 CapacityError::Setting("FG_NATIVE_FREE_BYTES_must_be_an_unsigned_byte_count")
             })
@@ -232,6 +239,25 @@ mod tests {
                 ..
             })
         ));
+    }
+
+    #[test]
+    fn optional_native_capacity_keeps_explicit_zero_and_rejects_invalid_values()
+    -> Result<(), CapacityError> {
+        assert_eq!(
+            parse_native_available(Err(env::VarError::NotPresent))?,
+            None
+        );
+        assert_eq!(parse_native_available(Ok(String::new()))?, None);
+        assert_eq!(parse_native_available(Ok("0".into()))?, Some(0));
+        assert_eq!(parse_native_available(Ok("100".into()))?, Some(100));
+        for value in [" ", "+1", "18446744073709551616"] {
+            assert!(matches!(
+                parse_native_available(Ok(value.into())),
+                Err(CapacityError::Setting(_))
+            ));
+        }
+        Ok(())
     }
 
     #[test]

@@ -1,5 +1,7 @@
 # Differential harness
 
+English · [简体中文](README.zh-CN.md)
+
 `fg-diff` executes the selected corpus and compares column names/types, NULLs,
 values, duplicate multiplicity, affected rows and stable error classes. SQL
 fixtures use independent native databases or schemas. MongoDB command fixtures

@@ -8,7 +8,7 @@
   import { createApi, ApiError } from '$lib/api';
   import { createDemoApi } from '$lib/demo';
   import type { ConsoleApi, Branch, BranchClass, BranchStatus, Capabilities, RowDiff, Approval, AuditPage, AuditQuery, Policy, GitHubBinding } from '$lib/model';
-  import { connectionCommand, defaultPort, defaultSettings, type ConnectionSettings } from '$lib/connection';
+  import { connectionCommand, connectionEngines, defaultPort, defaultSettings, readConnectionSettings, type ConnectionSettings } from '$lib/connection';
 
   const navigation: { key: TranslationKey; icon: string; group: 'developer' | 'admin' }[] = [
     { key: 'branches', icon: 'branch', group: 'developer' }, { key: 'tools', icon: 'terminal', group: 'developer' },
@@ -239,7 +239,9 @@
     } catch (cause) { if (api === currentApi && epoch === requestEpoch) actionError = cause; } finally { actionBusy = false; }
   }
   onMount(() => {
-    try { const stored = JSON.parse(localStorage.getItem('forkget.console.connection') || 'null'); if (stored) for (const key of Object.keys(defaultSettings) as (keyof ConnectionSettings)[]) if (typeof stored[key] === 'string') settings[key] = stored[key]; } catch { /* A broken preference must not block login. */ }
+    try {
+      settings = readConnectionSettings(JSON.parse(localStorage.getItem('forkget.console.connection') || 'null'));
+    } catch { /* A broken preference must not block login. */ }
     if (new URLSearchParams(location.search).get('preview') === '1') startDemo(); else readRoute();
     const media = matchMedia('(max-width: 1023px)');
     const resize = () => { narrow = media.matches; if (!narrow) mobileNav = false; };
@@ -414,7 +416,12 @@
           <section class="panel"><div class="panel-head"><h2>{$t('language')}</h2><Icon name="globe"/></div><div class="panel-body"><div style="max-width:330px"><label for="preference-language">{$t('language')}</label><select id="preference-language" value={$locale} onchange={(event) => setLocale(event.currentTarget.value as Locale)}>{#each supportedLocales as item}<option value={item.code}>{item.nativeLabel}</option>{/each}</select><p class="hint" style="margin-top:8px">{$t('language_description')}</p></div></div></section>
           <section class="panel" style="margin-top:20px"><div class="panel-head"><h2>{$t('local_settings')}</h2><span class="badge neutral">{$t('connection')}</span></div><form class="panel-body" onsubmit={(event) => { event.preventDefault(); saveSettings(); notify($t('saved')); }}><div class="notice neutral"><Icon name="info"/><p>{$t('endpoint_hint')}</p></div><div class="grid2">
             <div class="field"><label for="deployment-label">{$t('deployment_label')}</label><input id="deployment-label" bind:value={settings.deployment} maxlength="100" required/></div>
-            <div class="field"><label for="engine">{$t('deployment_engine')}</label><select id="engine" bind:value={settings.engine} onchange={() => settings.port = defaultPort(settings.engine)}><option value="postgresql">PostgreSQL</option><option value="mysql">MySQL</option><option value="tidb">TiDB</option><option value="mongodb">MongoDB</option></select></div>
+            <div class="field">
+              <label for="engine">{$t('deployment_engine')}</label>
+              <select id="engine" bind:value={settings.engine} onchange={() => settings.port = defaultPort(settings.engine)}>
+                {#each connectionEngines as engine (engine.value)}<option value={engine.value}>{engine.label}</option>{/each}
+              </select>
+            </div>
             <div class="field"><label for="host">{$t('host')}</label><input id="host" bind:value={settings.host} required/></div><div class="field"><label for="port">{$t('port')}</label><input id="port" bind:value={settings.port} pattern={'[0-9]{1,5}'} required/></div><div class="field"><label for="frontend-user">{$t('frontend_account')}</label><input id="frontend-user" bind:value={settings.username} autocomplete="off"/></div><div class="field"><label for="ca-file">{$t('ca_file')}</label><input id="ca-file" bind:value={settings.caFile} required/></div>
           </div><div class="form-actions"><span class="hint">{$t('timezone')}: {Intl.DateTimeFormat().resolvedOptions().timeZone}</span><button class="primary" type="submit">{$t('save')}</button></div></form></section>
         {/if}

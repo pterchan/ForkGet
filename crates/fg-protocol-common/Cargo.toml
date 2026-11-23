@@ -9,6 +9,7 @@ license.workspace = true
 
 [features]
 default = ["transport"]
+no-tidb = []
 transport = ["dep:rustls", "dep:tokio-rustls"]
 routing = ["dep:rand", "dep:reqwest", "dep:serde", "dep:serde_json", "dep:jiff", "dep:subtle", "dep:tokio", "dep:base64", "dep:bson"]
 

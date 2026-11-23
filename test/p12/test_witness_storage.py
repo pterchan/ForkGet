@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 from pathlib import Path
+import ssl
 import struct
 from threading import Event
 import unittest
@@ -62,6 +63,68 @@ class MemoryStream:
         if (level, name) != (stored_level, stored_name):
             raise ValueError("Unexpected socket option")
         return value
+
+
+class TlsRelayStream(MemoryStream):
+    def __init__(self, data, control_records=()):
+        super().__init__(data)
+        self.timeout = 5
+        self.control_records = list(control_records)
+
+    def pending(self):
+        return 0
+
+    def gettimeout(self):
+        return self.timeout
+
+    def settimeout(self, timeout):
+        self.timeout = timeout
+
+    def recv(self, size):
+        if self.control_records:
+            if self.timeout != 0:
+                raise TimeoutError("TLS readiness without application data")
+            raise self.control_records.pop(0)()
+        return super().recv(size)
+
+
+class NativeSqlRelayTests(unittest.TestCase):
+    def test_tls_control_readiness_cannot_block_fragmented_client_first_frames(self):
+        for engine, requests, replies in (
+            ("mysql", [mysql_frame(b"login", 2), mysql_frame(b"\x03COMMIT")],
+             [mysql_frame(b"\0", 5), mysql_frame(b"\0", 1)]),
+            ("postgresql", [struct.pack("!II", 8, 196608), pg_frame(b"Q", b"COMMIT\0")],
+             [pg_frame(b"R", bytes(4)), pg_frame(b"C", b"COMMIT\0")]),
+        ):
+            with self.subTest(engine=engine):
+                relay = storage.sql_audit.NativeRelay(FakeRun(engine), "observe")
+                self.addCleanup(relay.listener.close)
+                client = TlsRelayStream(b"".join(requests))
+                server = TlsRelayStream(b"".join(replies), [ssl.SSLWantWriteError, ssl.SSLWantReadError])
+                write_interest = []
+
+                def ready(readers, writers, _errors, _timeout):
+                    if writers:
+                        self.assertEqual(writers, [server])
+                        self.assertNotIn(server, readers)
+                        write_interest.extend(writers)
+                        return [], writers, []
+                    if server.control_records or (not client.data and server.data):
+                        return [server], [], []
+                    if client.data:
+                        return [client], [], []
+                    relay.done.set()
+                    return [], [], []
+
+                with patch.object(storage.sql_audit.select, "select", side_effect=ready):
+                    relay.forward(client, server)
+
+                self.assertEqual(write_interest, [server])
+                self.assertEqual(server.sent, requests)
+                self.assertEqual(client.sent, replies)
+                self.assertEqual((client.timeout, server.timeout), (5, 5))
+                self.assertEqual(relay.commits, 1)
+                self.assertEqual(relay.errors, [])
 
 
 class WitnessRelayTests(unittest.TestCase):

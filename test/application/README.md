@@ -1,5 +1,7 @@
 # SQLAlchemy business profile
 
+English · [简体中文](README.zh-CN.md)
+
 The finite profile uses SQLAlchemy 2.1.8, ordinary PyMySQL 1.1.1 or psycopg 3.2.9,
 and the same model/business code against native source and Forkget. TiDB uses
 the ordinary MySQL dialect. It retains initialization, reflection, generated

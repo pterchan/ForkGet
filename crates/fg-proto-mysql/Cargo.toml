@@ -7,7 +7,7 @@ publish.workspace = true
 license.workspace = true
 
 [dependencies]
-fg-protocol-common = { path = "../fg-protocol-common", features = ["routing"] }
+fg-protocol-common = { workspace = true, features = ["routing", "transport"] }
 fg-rewrite = { path = "../fg-rewrite" }
 rand.workspace = true
 sha2.workspace = true

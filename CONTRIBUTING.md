@@ -1,5 +1,7 @@
 # Contributing
 
+English · [简体中文](CONTRIBUTING.zh-CN.md)
+
 Use [issues and pull requests](https://github.com/pterchan/ForkGet) for reproducible
 problems and focused changes. Include engine/client versions, an admitted feature,
 a minimal synthetic schema and the FG error category. Remove credentials and

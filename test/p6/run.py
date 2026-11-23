@@ -11,12 +11,26 @@ from pathlib import Path
 import platform
 import subprocess
 import time
+import tomllib
 
 P5 = Path(__file__).resolve().parents[1] / "p5" / "run.py"
 spec = importlib.util.spec_from_file_location("run_p5", P5)
 p5 = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(p5)
 from run_p2 import OWNER_A, ROOT, require, wait_until
+
+
+ALL_SQL_ENGINES = ("mysql", "postgresql", "tidb")
+
+
+def qualification_sql_engines(revision="HEAD"):
+    manifest = subprocess.check_output(
+        ["git", "show", f"{revision}:Cargo.toml"], cwd=ROOT, text=True)
+    dependencies = tomllib.loads(manifest)["workspace"].get("dependencies", {})
+    protocol = dependencies.get("fg-protocol-common")
+    if isinstance(protocol, dict) and "no-tidb" in protocol.get("features", []):
+        return ("mysql", "postgresql")
+    return ALL_SQL_ENGINES
 
 
 class EngineRun(p5.EngineRun):
@@ -119,11 +133,11 @@ class EngineRun(p5.EngineRun):
         self.record("CI 24-hour fallback, success cleanup, deliberate SQL/TLS failure retention with CAS renewal, and runner-loss TTL")
 
 
-def run_profile(tag, title, runner, argv=None):
+def run_profile(tag, title, runner, argv=None, *, all_engines=ALL_SQL_ENGINES):
     parser = argparse.ArgumentParser(description=title)
-    parser.add_argument("engine", nargs="?", choices=("mysql", "postgresql", "tidb", "all"), default="all")
+    parser.add_argument("engine", nargs="?", choices=(*all_engines, "all"), default="all")
     selected = parser.parse_args(argv).engine
-    engines = ("mysql", "postgresql", "tidb") if selected == "all" else (selected,)
+    engines = all_engines if selected == "all" else (selected,)
     started = datetime.now(UTC)
     run_id = f"fg{tag}-{started:%H%M%S}-{os.getpid()}"
     report_env = f"FG_{tag.upper().replace('-', '_')}_REPORT_ROOT"

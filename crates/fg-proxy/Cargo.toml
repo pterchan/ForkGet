@@ -9,7 +9,7 @@ license.workspace = true
 [dependencies]
 axum.workspace = true
 mongodb.workspace = true
-fg-protocol-common = { path = "../fg-protocol-common", features = ["routing"] }
+fg-protocol-common = { workspace = true, features = ["routing", "transport"] }
 fg-proto-mongo = { path = "../fg-proto-mongo" }
 fg-proto-mysql = { path = "../fg-proto-mysql" }
 fg-proto-pg = { path = "../fg-proto-pg" }

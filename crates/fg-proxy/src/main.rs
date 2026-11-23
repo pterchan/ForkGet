@@ -10,7 +10,10 @@ use axum::{
     http::{HeaderMap, StatusCode, header},
     routing::{get, post},
 };
-use fg_protocol_common::{Router, WireError, bearer_matches};
+use fg_protocol_common::{
+    Router, TIDB_BACKEND_AVAILABLE, UnsupportedTidbBackend, WireError, bearer_matches,
+    check_mysql_backend_version,
+};
 use mongodb::{
     Client,
     bson::{Document, doc},
@@ -29,6 +32,8 @@ use settings::{Engine, MongoObserver, NativeOptions, Settings};
 enum Error {
     #[error("Invalid or missing proxy setting {0}")]
     Config(&'static str),
+    #[error(transparent)]
+    UnsupportedTidb(#[from] UnsupportedTidbBackend),
     #[error("Proxy socket failed: {0}")]
     Io(#[from] std::io::Error),
     #[error(transparent)]
@@ -290,7 +295,17 @@ fn internal_authorized(headers: &HeaderMap, expected: &str) -> bool {
     token.is_some_and(|candidate| bearer_matches(candidate, expected))
 }
 
-async fn wait_for_clean_start(options: &NativeOptions) -> Result<(), WireError> {
+async fn wait_for_clean_start(options: &NativeOptions) -> Result<(), Error> {
+    if !TIDB_BACKEND_AVAILABLE && let NativeOptions::MySql(options) = options {
+        let mut native = MySqlConnection::connect_with(options)
+            .await
+            .map_err(|_| WireError::Backend)?;
+        let version: String = sqlx::query_scalar("SELECT VERSION()")
+            .fetch_one(&mut native)
+            .await
+            .map_err(|_| WireError::Backend)?;
+        check_mysql_backend_version(version.as_bytes())?;
+    }
     loop {
         if observe(options).await?.is_empty() {
             return Ok(());

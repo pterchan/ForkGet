@@ -44,7 +44,7 @@ impl Metadata {
                 engine: &header.engine,
                 principal,
                 name,
-                ttl_seconds: 86400,
+                ttl_seconds: crate::lifecycle::MAX_TTL_SECONDS,
                 mode: BranchMode::NativeWrite,
                 class: BranchClass::Dev,
                 expected_generation: Some(&header.origin),

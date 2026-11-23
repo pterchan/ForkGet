@@ -1,5 +1,11 @@
 # Limits and known limitations
 
+English · [简体中文](limitations.zh-CN.md)
+
+This guide describes the limits of **Forkget v0.1.1**, the candidate for a
+stable release. Production and managed-environment qualification depend on
+passing the applicable release gates.
+
 Forkget admits a finite set of engine objects, queries and commands. Native
 protocol compatibility does not mean arbitrary SQL, DDL or ORM migrations are
 accepted. Consult [capabilities and supported subsets](support-matrix.md) before
@@ -7,16 +13,11 @@ using a schema. Unsupported requests fail explicitly.
 
 ## TiDB concurrent foreign keys
 
-TiDB 8.5.8 concurrent parent deletion and child insertion can commit an orphan,
-both through Forkget and on the native engine with real TiKV. Pessimistic mode
-and a parent primary-key pre-lock did not prevent the observed race. Rollback
-variants also failed the required waiting barrier. Forkget currently neither
-repairs nor reliably refuses this concurrent path.
-
-This is a correctness blocker for the candidate. Do not rely on this TiDB path
-for concurrent foreign-key integrity. Serial imports, application runs and
-successful ordinary queries do not establish that guarantee. This limitation
-is independent of any performance-policy change.
+TiDB is outside the v0.1.1 release scope. Earlier tests on TiDB 8.5.8 reproduced
+an orphaned child row after concurrent parent deletion and child insertion, both
+through Forkget and directly on the native engine with real TiKV. The race
+persisted with pessimistic mode and a parent primary-key pre-lock. The rollback
+variants also failed the required waiting barrier. The issue remains unresolved.
 
 ## Storage and retention
 

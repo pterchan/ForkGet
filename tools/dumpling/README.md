@@ -1,5 +1,7 @@
 # Private-config native Dumpling launcher
 
+English · [简体中文](README.zh-CN.md)
+
 `fg-dumpling-run` imports PingCAP's unmodified Dumpling implementation at
 TiDB v8.5.8, commit `8b857efa20363d50a8fa2ea7dd9809a85a61b115`.
 It configures native snapshot/data-only SQL export without exposing the source

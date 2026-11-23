@@ -10,6 +10,7 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
+use fg_protocol_common::{TIDB_BACKEND_AVAILABLE, admit_tidb_backend, check_mysql_backend_version};
 use percent_encoding::percent_decode_str;
 use reqwest::Url;
 use serde_json::json;
@@ -39,7 +40,10 @@ impl Endpoint {
         let engine = match url.scheme() {
             "mysql" => Engine::MySql,
             "postgres" | "postgresql" => Engine::Postgres,
-            "tidb" => Engine::TiDB,
+            "tidb" => {
+                admit_tidb_backend()?;
+                Engine::TiDB
+            }
             _ => return Err(SnapshotError::Setting("unsupported_snapshot_engine")),
         };
         if url.query().is_some() || url.fragment().is_some() {
@@ -114,7 +118,13 @@ impl Endpoint {
         } else {
             options.ssl_mode(MySqlSslMode::Disabled)
         };
-        let connection = sqlx::MySqlConnection::connect_with(&options).await?;
+        let mut connection = sqlx::MySqlConnection::connect_with(&options).await?;
+        if !TIDB_BACKEND_AVAILABLE {
+            let version: String = sqlx::query_scalar("SELECT VERSION()")
+                .fetch_one(&mut connection)
+                .await?;
+            check_mysql_backend_version(version.as_bytes())?;
+        }
         Ok(if self.engine == Engine::TiDB {
             Native::TiDB(connection)
         } else {
@@ -239,7 +249,7 @@ pub(super) async fn execute(
             phase,
             status: None,
         })?;
-        let deadline = Instant::now() + Duration::from_secs(3600);
+        let deadline = Instant::now() + TOOL_PHASE_LIMIT;
         loop {
             if let Some(status) = child.try_wait()? {
                 return if status.success() {
@@ -359,6 +369,11 @@ pub(super) async fn mysql_load(
     )
     .await
 }
+
+/// Wall-clock budget for one external snapshot tool phase. Sized for the
+// local focused-evidence scope; the planned 200 GiB cloud refresh needs a
+// raised, per-profile budget (support matrix: snapshot.* planned).
+const TOOL_PHASE_LIMIT: Duration = Duration::from_secs(3600);
 
 fn python_json(value: serde_json::Value) -> String {
     format!("json.loads({})", json!(value.to_string()))

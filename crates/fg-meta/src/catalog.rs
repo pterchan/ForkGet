@@ -10,7 +10,7 @@ use crate::{MetaError, Metadata};
 pub const DEFAULT_SCHEMA: &str = "app";
 pub(crate) const DELTA_SCHEMA: &str = "forkget_delta";
 const GENERATION_SWITCH_LOCK: i64 = 0x4647_0000_0000_0002;
-const LIVE_GENERATION_LIMIT: i64 = 2;
+pub(crate) const LIVE_GENERATION_LIMIT: i64 = 2;
 
 pub struct SeedTable {
     pub name: &'static str,

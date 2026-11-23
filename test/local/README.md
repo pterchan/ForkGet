@@ -1,5 +1,7 @@
 # Disposable native test engines
 
+English · [简体中文](README.zh-CN.md)
+
 The local Compose fixture contains MySQL 8.0.43, PostgreSQL 16.14, TiDB 8.5.8
 and MongoDB 7.0.48. It is for synthetic test data. TiDB's single-process fixture
 does not establish concurrent foreign-key integrity; see

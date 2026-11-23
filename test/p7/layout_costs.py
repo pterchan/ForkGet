@@ -98,7 +98,7 @@ class LayoutCosts(LocalGate):
 
 def main():
     # Keep engine stacks serial for meaningful local cost observations.
-    for engine in ("mysql", "postgresql", "tidb"):
+    for engine in smoke.p6.qualification_sql_engines():
         status = smoke.p6.run_profile("p7layout", f"P7 native layout costs ({engine})",
                                       partial(LayoutCosts, profile="local"), [engine])
         if status:

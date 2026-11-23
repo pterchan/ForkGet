@@ -1,5 +1,7 @@
 # Security and credentials
 
+English · [简体中文](security.zh-CN.md)
+
 Keep control and drain listeners on loopback. Remote owners use an authenticated
 SSH tunnel. The Console's public API alias retains owner authorization; internal
 proxy/control routes have no public alias. A deployment has one dedicated native
@@ -37,6 +39,6 @@ separate from serving administration; [source recipes](source-backup-roles.md)
 include native visibility/backup privileges beyond ordinary data SELECT.
 
 Report a potential vulnerability privately through a maintainer channel available
-to you. Do not include secrets in public issues. A prerelease does not imply an
-independent security certification. The [TiDB correctness limitation](limitations.md)
-remains a release blocker.
+to you. Do not include secrets in public issues. **Forkget v0.1.1** is a
+candidate for a stable release. Production qualification and independent
+security certification require their own evidence.

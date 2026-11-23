@@ -6,6 +6,52 @@ pub use errors::{
     WireError,
 };
 
+pub const TIDB_BACKEND_AVAILABLE: bool = !cfg!(feature = "no-tidb");
+
+#[derive(Debug, thiserror::Error)]
+#[error(
+    "[FORKGET {UNSUPPORTED_TABLE_CODE}] This release does not support TiDB backends; configure MySQL, PostgreSQL, or MongoDB"
+)]
+pub struct UnsupportedTidbBackend;
+
+pub fn admit_tidb_backend() -> Result<(), UnsupportedTidbBackend> {
+    if TIDB_BACKEND_AVAILABLE {
+        Ok(())
+    } else {
+        Err(UnsupportedTidbBackend)
+    }
+}
+
+pub fn check_mysql_backend_version(version: &[u8]) -> Result<(), UnsupportedTidbBackend> {
+    if !TIDB_BACKEND_AVAILABLE
+        && version
+            .windows(4)
+            .any(|part| part.eq_ignore_ascii_case(b"tidb"))
+    {
+        return Err(UnsupportedTidbBackend);
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod backend_admission_tests {
+    use super::*;
+
+    #[test]
+    fn validates_tidb_release_scope_for_explicit_and_mysql_backends() {
+        assert_eq!(admit_tidb_backend().is_ok(), TIDB_BACKEND_AVAILABLE);
+        for version in [b"8.0.11-TiDB-v8.5.8".as_slice(), b"5.7.25-tidb-v7.5.0"] {
+            assert_eq!(
+                check_mysql_backend_version(version).is_ok(),
+                TIDB_BACKEND_AVAILABLE
+            );
+        }
+        for version in [b"8.0.43".as_slice(), b"8.0.43-google"] {
+            assert!(check_mysql_backend_version(version).is_ok());
+        }
+    }
+}
+
 #[cfg(feature = "routing")]
 mod snapshot;
 #[cfg(feature = "routing")]

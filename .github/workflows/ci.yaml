@@ -6,11 +6,13 @@ permissions:
   contents: read
 
 env:
+  CARGO_BUILD_JOBS: "2"
+  CARGO_PROFILE_DEV_DEBUG: "0"
+  CARGO_PROFILE_TEST_DEBUG: "0"
   # Throwaway passwords for the disposable CI service containers only; they
   # configure single-job containers and are not credentials of any real system.
   FG_TEST_MYSQL_ROOT_PASSWORD: fg-ci-mysql
   FG_TEST_POSTGRES_PASSWORD: fg-ci-postgres
-  FG_TEST_TIDB_ROOT_PASSWORD: fg-ci-tidb
   FG_TEST_MONGO_ROOT_PASSWORD: fg-ci-mongo
 
 jobs:
@@ -49,7 +51,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        engine: [mysql, postgresql, tidb, mongodb]
+        engine: [mysql, postgresql, mongodb]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -106,15 +108,6 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 30
-      tidb:
-        image: pingcap/tidb:v8.5.8
-        ports:
-          - 4000:4000
-        options: >-
-          --health-cmd "curl -sf http://127.0.0.1:10080/status"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 30
       mongo:
         image: mongo:7.0.48
         env:
@@ -152,17 +145,11 @@ jobs:
         env:
           FG_TEST_MYSQL_HOST: 127.0.0.1
           FG_TEST_MYSQL_PORT: "3306"
-      - name: Pin the TiDB root password and enable CHECK enforcement
-        run: |
-          mysql --no-defaults --protocol=TCP -h 127.0.0.1 -P 4000 -u root \
-            -e "ALTER USER 'root'@'%' IDENTIFIED BY 'fg-ci-tidb'; \
-                SET GLOBAL tidb_enable_check_constraint = ON"
       - name: Differential smoke (reference-vs-reference, all engines)
         run: make diff-test TAG=smoke
         env:
           MYSQL_PORT: "3306"
           POSTGRES_PORT: "5432"
-          TIDB_PORT: "4000"
           MONGO_PORT: "27027"
       - name: Support-matrix check
         run: make matrix TAG=smoke
@@ -198,7 +185,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        engine: [mysql, postgresql, tidb, mongodb]
+        engine: [mysql, postgresql, mongodb]
     steps:
       - uses: actions/checkout@v4
       - name: Test isolated wire protocol against the native engine
@@ -220,7 +207,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        engine: [mysql, postgresql, tidb]
+        engine: [mysql, postgresql]
     steps:
       - uses: actions/checkout@v4
       - name: Install pinned Rust toolchain
@@ -247,7 +234,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        engine: [mysql, postgresql, tidb]
+        engine: [mysql, postgresql]
     steps:
       - uses: actions/checkout@v4
       - name: Install pinned Rust toolchain
@@ -270,7 +257,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        engine: [mysql, postgresql, tidb]
+        engine: [mysql, postgresql]
     steps:
       - uses: actions/checkout@v4
       - name: Install pinned Rust toolchain
@@ -293,7 +280,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        engine: [mysql, postgresql, tidb]
+        engine: [mysql, postgresql]
     steps:
       - uses: actions/checkout@v4
       - name: Test GitHub App, CI lifecycle and row replay locally
@@ -313,10 +300,6 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.25.12'
-          cache: false
       - name: Install native operator tools
         shell: bash
         run: |
@@ -325,13 +308,7 @@ jobs:
           sudo apt-get install -y --allow-downgrades --no-install-recommends \
             postgresql-client-16=16.15-0ubuntu0.24.04.1 \
             mysql-shell=8.0.36+dfsg-0ubuntu1 util-linux python3-venv
-          mkdir -p "$RUNNER_TEMP/native-bin" "$RUNNER_TEMP/lightning"
-          sh tools/dumpling/build.sh "$RUNNER_TEMP/native-bin/fg-dumpling-run"
-          curl --fail --location --proto '=https' --tlsv1.2 -sS \
-            https://tiup-mirrors.pingcap.com/tidb-lightning-v8.5.8-linux-amd64.tar.gz \
-            -o "$RUNNER_TEMP/lightning.tar.gz"
-          tar -xzf "$RUNNER_TEMP/lightning.tar.gz" -C "$RUNNER_TEMP/lightning"
-          cp "$RUNNER_TEMP/lightning/tidb-lightning" "$RUNNER_TEMP/native-bin/"
+          mkdir -p "$RUNNER_TEMP/native-bin"
           native_container=$(docker create mongo:7.0.48)
           trap 'docker rm "$native_container" >/dev/null' EXIT
           docker cp "$native_container:/usr/bin/mongodump" "$RUNNER_TEMP/native-bin/mongodump"

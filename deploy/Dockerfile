@@ -22,17 +22,6 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     && install -D target/release/fg-proxy /out/fg-proxy \
     && install -D target/release/forkget /out/forkget
 
-FROM golang:1.25.12-bookworm AS tidb-tools
-WORKDIR /launcher
-COPY tools/dumpling/ ./
-RUN --mount=type=cache,target=/go/pkg/mod,sharing=locked \
-    --mount=type=cache,target=/root/.cache,sharing=locked \
-    sh build.sh /fg-dumpling-run
-RUN curl --fail --location --proto '=https' --tlsv1.2 -sS \
-      https://tiup-mirrors.pingcap.com/tidb-lightning-v8.5.8-linux-amd64.tar.gz \
-      -o /lightning.tar.gz \
-    && mkdir /lightning && tar -xzf /lightning.tar.gz -C /lightning
-
 FROM mongo:7.0.48 AS mongo-tools
 
 FROM ubuntu:24.04
@@ -43,8 +32,6 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
     && rm -rf /var/lib/apt/lists/*
 COPY --from=build /out/ /usr/local/bin/
 COPY --from=console /console/build/ /usr/share/forkget/console/
-COPY --from=tidb-tools /fg-dumpling-run /usr/local/bin/fg-dumpling-run
-COPY --from=tidb-tools /lightning/tidb-lightning /usr/local/bin/tidb-lightning
 COPY --from=mongo-tools /usr/bin/mongodump /usr/bin/mongorestore /usr/local/bin/
 COPY deploy/runtime-grants.sql /opt/forkget/runtime-grants.sql
 WORKDIR /work

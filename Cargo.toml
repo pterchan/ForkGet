@@ -16,7 +16,7 @@ members = [
 resolver = "3"
 
 [workspace.package]
-version = "0.1.0-rc.1"
+version = "0.1.1"
 edition = "2024"
 rust-version = "1.94.1"
 publish = false
@@ -25,6 +25,7 @@ readme = "README.md"
 description = "Data environments you can fork, test, and discard over MySQL and PostgreSQL"
 
 [workspace.dependencies]
+fg-protocol-common = { path = "crates/fg-protocol-common", default-features = false, features = ["no-tidb"] }
 # Typed errors shared by the libraries.
 thiserror = "2.0.18"
 # CLI parsing and typed interchange are shared with the differential harness.

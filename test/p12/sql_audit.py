@@ -10,6 +10,7 @@ import json
 import os
 from pathlib import Path
 import select
+import ssl
 import struct
 import subprocess
 import sys
@@ -20,7 +21,8 @@ from types import SimpleNamespace
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "test/p6"))
 import run as p6
-from faults import CommandFrames, CommitReply, ControlRelay, mutation_kind, read_exact
+from faults import CommandFrames, CommitReply, ControlRelay, mutation_kind
+from faults import read_exact as read_exact
 from run_p2 import OWNER_A, json_file, require, wait_until
 from write_cases import Probe, check_count, generated_one
 import mysql_review
@@ -76,6 +78,52 @@ class OutcomeRelay(ControlRelay):
         return body
 
 
+class SqlFrameBuffer:
+    def __init__(self, is_postgres):
+        self.is_postgres = is_postgres
+        self.data = bytearray()
+        self.wants_write = False
+
+    def receive(self, stream, is_startup):
+        header_size = 5 if self.is_postgres and not is_startup else 4
+        needed = header_size if len(self.data) < header_size else self.frame_size(is_startup)
+        data = self.read_tls(stream, min(needed - len(self.data), 65536))
+        if not data:
+            return data
+        self.data.extend(data)
+        if len(self.data) < header_size or len(self.data) < self.frame_size(is_startup):
+            return None
+        frame = bytes(self.data)
+        self.data.clear()
+        return frame
+
+    def frame_size(self, is_startup):
+        if not self.is_postgres:
+            return 4 + int.from_bytes(self.data[:3], "little")
+        header_offset = 0 if is_startup else 1
+        size = int.from_bytes(self.data[header_offset:header_offset + 4], "big")
+        require(size >= 4, "Invalid PostgreSQL relay frame length")
+        return header_offset + size
+
+    def read_tls(self, stream, size):
+        timeout = stream.gettimeout()
+        try:
+            # TLS control records can make select readable without application
+            # bytes. A read on this leg must not block the opposite leg.
+            stream.settimeout(0)
+            data = stream.recv(size)
+        except ssl.SSLWantReadError:
+            self.wants_write = False
+            return None
+        except ssl.SSLWantWriteError:
+            self.wants_write = True
+            return None
+        finally:
+            stream.settimeout(timeout)
+        self.wants_write = False
+        return data
+
+
 class NativeRelay(CommitReply):
     """Forward original complete frames; pause/drop only at real boundaries."""
     def __init__(self, run, mode):
@@ -90,39 +138,45 @@ class NativeRelay(CommitReply):
         self.witness_syncs = 0
 
     def forward(self, client, server):
-        startup = self.run.family == "postgresql"
+        is_postgres = self.run.family == "postgresql"
+        startup = is_postgres
+        buffers = {stream: SqlFrameBuffer(is_postgres) for stream in (client, server)}
         commands = CommandFrames(self.run.family)
         withholding = private = witness_before_sync = False
         try:
             while not self.done.is_set():
                 if withholding and self.drop_reply.is_set():
                     return
-                readable = [stream for stream in (client, server) if stream.pending()]
+                readable = [stream for stream, buffer in buffers.items()
+                            if not buffer.wants_write and stream.pending()]
                 if not readable:
-                    readable, _, _ = select.select([client, server], [], [], .05)
+                    readable, writable, _ = select.select(
+                        [stream for stream, buffer in buffers.items() if not buffer.wants_write],
+                        [stream for stream, buffer in buffers.items() if buffer.wants_write], [], .05)
+                    readable += writable
                 for source in readable:
-                    if self.run.family == "postgresql":
-                        if source is client and startup:
-                            header = read_exact(source, 4)
-                            frame = header + read_exact(source, int.from_bytes(header, "big") - 4)
-                            startup = False
-                            commands.scan(frame)
-                            server.sendall(frame)
-                            if frame[4:8] == struct.pack("!I", 80877102):
-                                self.cancel_seen.set()
-                                require(server.recv(1) == b"", "Native CancelRequest returned data")
-                                return
-                            continue
-                        header = read_exact(source, 5)
-                        frame = header + read_exact(source, int.from_bytes(header[1:5], "big") - 4)
+                    is_startup = source is client and startup
+                    frame = buffers[source].receive(source, is_startup)
+                    if frame is None:
+                        continue
+                    if not frame:
+                        return
+                    if is_startup:
+                        startup = False
+                        commands.scan(frame)
+                        server.sendall(frame)
+                        if frame[4:8] == struct.pack("!I", 80877102):
+                            self.cancel_seen.set()
+                            require(server.recv(1) == b"", "Native CancelRequest returned data")
+                            return
+                        continue
+                    if is_postgres:
                         sql = None
-                        if source is client and header[0] == ord("Q"):
+                        if source is client and frame[0] == ord("Q"):
                             sql = frame[5:-1]
-                        if source is client and header[0] == ord("P"):
+                        if source is client and frame[0] == ord("P"):
                             sql = frame[5:].split(b"\0", 2)[1]
                     else:
-                        header = read_exact(source, 4)
-                        frame = header + read_exact(source, int.from_bytes(header[:3], "little"))
                         sql = frame[5:] if source is client and len(frame) > 4 and frame[3:5] == b"\0\x03" else None
                     if source is client:
                         if self.run.family != "postgresql" and frame[3:5] == b"\0\x17":

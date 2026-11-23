@@ -11,7 +11,7 @@ use std::{
 };
 
 use clap::{Args, ValueEnum};
-use fg_protocol_common::WireError;
+use fg_protocol_common::{TIDB_BACKEND_AVAILABLE, WireError, admit_tidb_backend};
 use fg_rewrite::{Dialect, validate_dryrun_statement};
 use rand::{RngCore, rngs::OsRng};
 use reqwest::Url;
@@ -59,6 +59,7 @@ pub(super) struct Options {
 pub(super) enum Engine {
     Mysql,
     Postgresql,
+    #[value(hide = !TIDB_BACKEND_AVAILABLE)]
     Tidb,
 }
 
@@ -207,6 +208,9 @@ struct StatementOutcome {
 }
 
 pub(super) async fn run(control: &Control, options: Options) -> Result<Outcome, Error> {
+    if options.engine == Engine::Tidb {
+        admit_tidb_backend()?;
+    }
     let manifest = Manifest::load(&options.manifest, options.engine.dialect())?;
     let target = Target::load(options.engine)?;
     let mut report = Report::new(options.engine, temporary_name()?);
@@ -559,7 +563,10 @@ impl Target {
         let scheme = match base.scheme() {
             "mysql" => Engine::Mysql,
             "postgresql" | "postgres" => Engine::Postgresql,
-            "tidb" => Engine::Tidb,
+            "tidb" => {
+                admit_tidb_backend()?;
+                Engine::Tidb
+            }
             _ => return Err(Error::ProxyConfig),
         };
         if scheme != engine

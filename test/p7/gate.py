@@ -119,6 +119,7 @@ def exact_revision():
 
 def verify_nights(directory, revision):
     """Require fourteen consecutive UTC dates for this exact product SHA."""
+    applicable_engines = set(smoke.p6.qualification_sql_engines(revision))
     dates = set()
     for candidate in directory.glob("*-p7gate-*"):
         try:
@@ -126,7 +127,7 @@ def verify_nights(directory, revision):
             environment = json.loads((candidate / "env.json").read_text())
             if summary["status"] != "passed" or environment["source_revision"] != revision:
                 continue
-            if environment["source_state"] != "clean" or set(summary["engines"]) != {"mysql", "postgresql", "tidb"}:
+            if environment["source_state"] != "clean" or set(summary["engines"]) != applicable_engines:
                 continue
             if all(valid_night(candidate, engine, result) for engine, result in summary["engines"].items()):
                 started = datetime.fromisoformat(summary["started_at"])
@@ -160,7 +161,8 @@ def main():
         revision = exact_revision()
     os.environ.setdefault("FG_P7GATE_REPORT_ROOT", str(ROOT / "target" / "p7-evidence"))
     status = smoke.p6.run_profile("p7gate", f"P7 {selected.profile} verification", partial(
-        LocalGate, profile=selected.profile), [selected.engine])
+        LocalGate, profile=selected.profile), [selected.engine],
+        all_engines=smoke.p6.qualification_sql_engines(revision if selected.profile == "nightly" else "HEAD"))
     if selected.profile == "nightly":
         require(exact_revision() == revision, "The source revision changed during the nightly run")
     return status

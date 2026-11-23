@@ -1,5 +1,5 @@
 //! Handshake and branch-data checks against a live, auth-enabled
-//! mongod on 127.0.0.1:27027:
+//! mongod on loopback (MONGO_PORT, default 27027):
 //!
 //! 1. `pymongo_style_passthrough_with_scram_termination` — the standalone
 //!    proxy passes a real pymongo driver through (hello, SCRAM-SHA-256,
@@ -30,7 +30,7 @@ use tokio::net::TcpStream;
 use fg_proto_mongo::scram;
 use fg_proto_mongo::{Account, SpikeConfig};
 
-const BACKEND: &str = "127.0.0.1:27027";
+const DEFAULT_MONGO_PORT: u16 = 27027;
 const FRONTEND_LISTEN: &str = "127.0.0.1:28017";
 const SPIKE_USER: &str = "alice";
 const SPIKE_PASSWORD: &str = "spike-alice-pw";
@@ -42,6 +42,17 @@ const GENERATION_DB: &str = "fg_g900";
 const BRANCH_COPY_DB: &str = "fg_b2";
 const DELTA_TABLE: &str = "_d_g900_t1";
 const INTERNAL_TOKEN: &str = "stub-internal-token";
+
+fn backend_address() -> SocketAddr {
+    let port = std::env::var("MONGO_PORT")
+        .map(|value| {
+            value
+                .parse::<u16>()
+                .expect("MONGO_PORT must be a port number")
+        })
+        .unwrap_or(DEFAULT_MONGO_PORT);
+    SocketAddr::from(([127, 0, 0, 1], port))
+}
 
 fn root_password() -> String {
     std::env::var("FG_TEST_MONGO_ROOT_PASSWORD").unwrap_or_else(|_| "spike-root-pw".into())
@@ -153,10 +164,10 @@ async fn connect_root() -> Option<RawClient> {
         println!("skipped: FG_TEST_MONGO_ROOT_PASSWORD is not set (source test/local/.env)");
         return None;
     }
-    let Ok(mut root) = RawClient::connect(BACKEND).await else {
-        println!("skipped: mongod not reachable at {BACKEND}; start test/local first");
-        return None;
-    };
+    let address = backend_address();
+    let mut root = RawClient::connect(&address.to_string())
+        .await
+        .unwrap_or_else(|error| panic!("configured mongod at {address} is unreachable: {error}"));
     root.authenticate("root", &root_password()).await;
     Some(root)
 }
@@ -348,6 +359,135 @@ async fn seed_generation(root: &mut RawClient) {
     .await;
 }
 
+async fn assert_bulk_cursor_results(alpha: &mut RawClient) {
+    // Distinct and duplicate checks must cover more than the default
+    // 101-document first batch.
+    let bulk: Vec<bson::Document> = (0..150)
+        .map(|index| {
+            bson::doc! {
+                "_id": 500 + index,
+                "tenant_id": 1,
+                "customer_id": 10,
+                "amount": 1.5,
+                "note": format!("bulk-{index}"),
+            }
+        })
+        .collect();
+    let bulk_insert = alpha
+        .command(&doc! {
+            "insert": "orders",
+            "documents": bulk.clone(),
+            "ordered": true,
+            "$db": "alpha",
+        })
+        .await;
+    assert_eq!(
+        bulk_insert.get_i32("n"),
+        Ok(150),
+        "bulk insert: {bulk_insert:?}"
+    );
+    let bulk_count = alpha
+        .command(&doc! { "count": "orders", "$db": "alpha" })
+        .await;
+    assert_eq!(
+        bulk_count.get_i32("n"),
+        Ok(154),
+        "bulk count: {bulk_count:?}"
+    );
+    let bulk_distinct = alpha
+        .command(&doc! { "distinct": "orders", "key": "note", "$db": "alpha" })
+        .await;
+    assert_eq!(
+        bulk_distinct.get_array("values").unwrap().len(),
+        154,
+        "distinct must include every batch of values: {bulk_distinct:?}"
+    );
+    let duplicate = alpha
+        .command(&doc! {
+            "insert": "orders",
+            "documents": bulk,
+            "ordered": false,
+            "$db": "alpha",
+        })
+        .await;
+    assert_eq!(
+        duplicate.get_i32("n"),
+        Ok(0),
+        "duplicate insert: {duplicate:?}"
+    );
+    let errors = duplicate.get_array("writeErrors").unwrap();
+    let mut indices: Vec<i32> = errors
+        .iter()
+        .map(|error| {
+            let detail = error.as_document().unwrap();
+            assert_eq!(
+                detail.get_i32("code"),
+                Ok(11000),
+                "duplicate error: {detail:?}"
+            );
+            detail.get_i32("index").unwrap()
+        })
+        .collect();
+    indices.sort_unstable();
+    assert_eq!(
+        indices,
+        (0..150).collect::<Vec<_>>(),
+        "every input must have one duplicate-key error"
+    );
+}
+
+async fn assert_distinct_bson_limit(root: &mut RawClient, beta: &mut RawClient) {
+    let limit = fg_proto_mongo::MAX_BSON_OBJECT_SIZE as usize;
+    let large_string = limit / 2 - 128;
+    let overhead = bson::to_vec(&doc! { "values": ["", "", ""], "ok": 1.0 })
+        .unwrap()
+        .len();
+    // Three values fill exactly one BSON document. Four exceed the limit,
+    // and five also exceed mongod's internal serialization allowance.
+    for (index, (letter, bytes)) in [
+        ("a", large_string),
+        ("b", large_string),
+        ("c", limit - 2 * large_string - overhead),
+        ("d", 1),
+        ("e", 128 * 1024),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let reply = root
+            .command(&doc! {
+                "insert": "orders",
+                "documents": [{ "size_case": index as i32, "note": letter.repeat(bytes) }],
+                "$db": BRANCH_COPY_DB,
+            })
+            .await;
+        assert_eq!(reply.get_i32("n"), Ok(1));
+    }
+    for (last_case, expected_values) in [
+        (-1, Some(0)),
+        (1, Some(2)),
+        (2, Some(3)),
+        (3, None),
+        (4, None),
+    ] {
+        let reply = beta
+            .command(&doc! {
+                "distinct": "orders", "key": "note",
+                "query": { "size_case": { "$lte": last_case } }, "$db": "beta",
+            })
+            .await;
+        if let Some(count) = expected_values {
+            assert!(command_ok(&reply));
+            assert_eq!(reply.get_array("values").unwrap().len(), count);
+        } else {
+            assert_eq!(reply.get_f64("ok"), Ok(0.0));
+            assert_eq!(reply.get_i32("code"), Ok(20));
+            let reason = reply.get_str("errmsg").unwrap();
+            assert!(reason.contains("FG-2002") && reason.contains("16 MiB"));
+        }
+    }
+}
+
 #[tokio::test]
 async fn branch_data_plane_merges_reads_and_captures_writes() {
     let Some(mut root) = connect_root().await else {
@@ -366,7 +506,7 @@ async fn branch_data_plane_merges_reads_and_captures_writes() {
     let listen: SocketAddr = listener.local_addr().unwrap();
     let config = fg_proto_mongo::BranchConfig {
         transport: None,
-        backend: BACKEND.parse().unwrap(),
+        backend: backend_address(),
         backend_auth_db: DB.to_owned(),
         backend_account: Account {
             user: "root".into(),
@@ -575,6 +715,8 @@ async fn branch_data_plane_merges_reads_and_captures_writes() {
     assert_eq!(escape.get_i32("code"), Ok(20), "refusal: {escape:?}");
     assert!(escape.get_str("errmsg").unwrap().contains("FG-2002"));
 
+    assert_bulk_cursor_results(&mut alpha).await;
+
     // Branch beta owns a separate copy: its reads answer from that copy
     // (alpha's delta capture never reaches it), and its writes land there
     // natively — mongod's own reply shapes surface unchanged.
@@ -634,6 +776,27 @@ async fn branch_data_plane_merges_reads_and_captures_writes() {
         Ok("native-edited"),
         "native read-your-write: {beta_read:?}"
     );
+    // count/distinct must answer from the branch copy like find/aggregate:
+    // the materialized write branch's native rows change totals and key
+    // sets (regression: these used to read the pinned generation).
+    let beta_count = beta
+        .command(&doc! { "count": "orders", "$db": "beta" })
+        .await;
+    assert_eq!(
+        beta_count.get_i32("n"),
+        Ok(5),
+        "native count: {beta_count:?}"
+    );
+    let beta_distinct = beta
+        .command(&doc! { "distinct": "orders", "key": "note", "$db": "beta" })
+        .await;
+    let notes = beta_distinct.get_array("values").unwrap().clone();
+    assert!(
+        notes
+            .iter()
+            .any(|value| value.as_str() == Some("native-edited")),
+        "native distinct: {beta_distinct:?}"
+    );
     // multi:true stays refused on materialized branches too (no
     // transactions: the pre-admitted bound could not be enforced).
     let multi = beta
@@ -678,6 +841,7 @@ async fn branch_data_plane_merges_reads_and_captures_writes() {
             panic!("pymongo branch evidence failed: {detail}");
         }
     }
+    assert_distinct_bson_limit(&mut root, &mut beta).await;
     let _ = python;
     println!("branch data plane: merge, capture, isolation, cursoring, refusals: OK");
 }
@@ -711,7 +875,7 @@ async fn pymongo_style_passthrough_with_scram_termination() {
     let listen: SocketAddr = listener.local_addr().unwrap();
     let server_config = SpikeConfig {
         listen,
-        backend: BACKEND.parse().unwrap(),
+        backend: backend_address(),
         backend_auth_db: DB.to_owned(),
         accounts: vec![Account {
             user: SPIKE_USER.to_owned(),

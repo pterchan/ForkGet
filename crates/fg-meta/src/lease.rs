@@ -178,7 +178,7 @@ impl Metadata {
             .collect::<Result<Vec<_>, _>>()?;
         let audit = self.deployment_audit_status(engine).await?;
         Ok(
-            serde_json::json!({"engine":engine,"generations":generations,"generation_limit":2,"native_slots_used":slots,"native_slots_limit":16,"native_copy_blockers":blockers,"audit":audit,"max_branch_lifetime_seconds":MAX_BRANCH_LIFETIME_SECONDS}),
+            serde_json::json!({"engine":engine,"generations":generations,"generation_limit":crate::catalog::LIVE_GENERATION_LIMIT,"native_slots_used":slots,"native_slots_limit":crate::lifecycle::WRITE_CAPACITY,"native_copy_blockers":blockers,"audit":audit,"max_branch_lifetime_seconds":MAX_BRANCH_LIFETIME_SECONDS}),
         )
     }
 }

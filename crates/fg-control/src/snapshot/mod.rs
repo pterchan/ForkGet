@@ -15,7 +15,7 @@ use std::{
 };
 
 use fg_meta::{BootstrapGeneration, Metadata};
-use fg_protocol_common::SnapshotManifest;
+use fg_protocol_common::{SnapshotManifest, UnsupportedTidbBackend, admit_tidb_backend};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
@@ -29,6 +29,8 @@ use tools::Endpoint;
 
 #[derive(Debug, thiserror::Error)]
 pub(crate) enum SnapshotError {
+    #[error(transparent)]
+    UnsupportedTidb(#[from] UnsupportedTidbBackend),
     #[error(transparent)]
     Ddl(#[from] crate::native::DdlError),
     #[error("Snapshot setting refused: {0}")]
@@ -270,8 +272,8 @@ async fn capture(options: Options) -> Result<(), SnapshotError> {
     if endpoint.engine == Engine::TiDB {
         return tidb::capture(endpoint, options).await;
     }
-    let versions = tools::versions(endpoint.engine)?;
     let mut native = endpoint.connect().await?;
+    let versions = tools::versions(endpoint.engine)?;
     inspect::source_visibility(&mut native, &options.schema).await?;
     if endpoint.engine == Engine::Postgres {
         inspect::execute(
@@ -306,6 +308,8 @@ async fn capture(options: Options) -> Result<(), SnapshotError> {
     } else {
         "UNLOCK INSTANCE"
     };
+    // The connection is dropped right after this, releasing the lock or
+    // instance; capture failures already surface through `result`.
     let _ = inspect::execute(&mut native, release).await;
     result
 }
@@ -393,6 +397,9 @@ async fn import(
     input: &Path,
 ) -> Result<(), SnapshotError> {
     let manifest = bundle(input)?;
+    if manifest.engine == Engine::TiDB.name() {
+        admit_tidb_backend()?;
+    }
     if !matches!(
         manifest.engine.as_str(),
         "mysql" | "postgresql" | "tidb" | "mongodb"
@@ -426,10 +433,10 @@ async fn import(
             "unfinished_import_requires_retry_cleanup",
         ));
     }
-    let mut native = options
-        .connect()
-        .await
-        .map_err(|_| SnapshotError::Setting("target_native_connection"))?;
+    let mut native = options.connect().await.map_err(|error| match error {
+        ControlError::UnsupportedTidb(error) => error.into(),
+        _ => SnapshotError::Setting("target_native_connection"),
+    })?;
     if native.engine() == Engine::Postgres {
         inspect::execute(&mut native, "SET client_min_messages=WARNING").await?;
         let capture: Capture = serde_json::from_slice(&fs::read(input.join("capture.json"))?)?;

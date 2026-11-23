@@ -13,21 +13,24 @@ import subprocess
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def check_source(revision):
-    actual = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
-    dirty = subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT, text=True)
-    if not re.fullmatch(r"[0-9a-f]{40}", revision) or actual != revision or dirty:
+def check_source(revision, source_root):
+    top = subprocess.check_output(["git", "rev-parse", "--show-toplevel"], cwd=source_root, text=True).strip()
+    actual = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=source_root, text=True).strip()
+    dirty = subprocess.check_output(["git", "status", "--porcelain"], cwd=source_root, text=True)
+    if Path(top).resolve() != source_root or not re.fullmatch(r"[0-9a-f]{40}", revision) or actual != revision or dirty:
         raise ValueError("Nightly requires the requested full SHA and a clean checkout")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-revision", required=True)
-    parser.add_argument("--report-root", type=Path, default=ROOT / "target/p7-evidence")
+    parser.add_argument("--source-root", type=Path, default=ROOT)
+    parser.add_argument("--report-root", type=Path)
     parser.add_argument("--check", action="store_true", help="validate inputs without running tests")
     args = parser.parse_args()
-    check_source(args.source_revision)
-    root = args.report_root.resolve()
+    source_root = args.source_root.resolve()
+    check_source(args.source_revision, source_root)
+    root = (args.report_root or source_root / "target/p7-evidence").resolve()
     if args.check:
         print(json.dumps({"source_revision": args.source_revision, "report_root": str(root)}))
         return 0
@@ -45,9 +48,9 @@ def main():
         exit_code = 1
         try:
             with (attempt / "output.log").open("w") as output:
-                exit_code = subprocess.call(command, cwd=ROOT, stdout=output, stderr=subprocess.STDOUT,
+                exit_code = subprocess.call(command, cwd=source_root, stdout=output, stderr=subprocess.STDOUT,
                     env=os.environ | {"FG_P7GATE_REPORT_ROOT": str(root), "PYTHONDONTWRITEBYTECODE": "1"})
-            check_source(args.source_revision)
+            check_source(args.source_revision, source_root)
         except (OSError, ValueError, KeyboardInterrupt) as error:
             status["error"] = str(error)
             exit_code = 1

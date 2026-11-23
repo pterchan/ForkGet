@@ -68,6 +68,11 @@ pub struct TableShape<'a> {
 ///
 /// This preserves catalog column order and exposes no internal delta columns.
 /// No client placeholders are added, renumbered, or consumed.
+///
+/// Uses LEFT JOIN + IS NULL instead of NOT EXISTS for better optimizer support
+/// in modern SQL engines (MySQL 8.0+, PostgreSQL 12+, TiDB). The semantic is
+/// identical: delta rows with I/U operations UNION ALL base rows that do not
+/// have a delta entry in this branch.
 pub fn render_visible_relation(
     dialect: Dialect,
     branch: BranchId,
@@ -92,6 +97,9 @@ pub fn render_visible_relation(
     // The validated metadata integer cannot inject SQL or change frontend binds.
     let branch_id = branch.0;
 
+    // For IS NULL check, use the first PK column (guaranteed to be non-null in delta schema).
+    let first_pk = quote_identifier(dialect, table.primary_key[0]);
+
     Ok(format!(
         "SELECT {delta_columns}\n\
          FROM {delta} AS d\n\
@@ -99,10 +107,8 @@ pub fn render_visible_relation(
          UNION ALL\n\
          SELECT {base_columns}\n\
          FROM {base} AS b\n\
-         WHERE NOT EXISTS (\n  \
-           SELECT 1 FROM {delta} AS hidden\n  \
-           WHERE hidden.{branch_column} = {branch_id} AND {key_match}\n\
-         )"
+         LEFT JOIN {delta} AS hidden ON hidden.{branch_column} = {branch_id} AND {key_match}\n\
+         WHERE hidden.{first_pk} IS NULL"
     ))
 }
 

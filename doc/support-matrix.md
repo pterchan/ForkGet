@@ -1,19 +1,20 @@
 # Supported subsets
 
-This is the implemented source subset for an experimental candidate. It does not
-establish release qualification or arbitrary native-engine compatibility. Check
-`forkget capabilities` and branch status for actual deployment limits.
+English · [简体中文](support-matrix.zh-CN.md)
+
+The table lists the engine profiles in the release scope for **Forkget v0.1.1**.
+Production and managed-environment qualification depend on validation of the exact
+candidate. Check `forkget capabilities` and branch status for actual deployment
+limits.
 
 | Engine baseline | Admitted protocol/storage | Boundary |
 |---|---|---|
 | MySQL 8.0.43 | Native protocol; shared read-only base and writable native copies | One logical database; verified TLS |
 | PostgreSQL 16.14 | Native protocol; shared read-only base and writable native copies | One logical schema; verified TLS |
-| TiDB 8.5.8 | MySQL frontend with separate native import and plan mapping | Concurrent FK integrity remains blocked, including with real TiKV |
 | MongoDB 7.0.48 | OP_MSG, document deltas and native copies | Single direct endpoint, independent pool per branch, non-atomic standalone writes |
 
-**TiDB is not qualified for concurrent foreign-key integrity.** Its delete/insert
-race can commit an orphan, and Forkget does not reliably reject it. Read the
-[known limitations](limitations.md) before selecting this engine.
+TiDB is outside the v0.1.1 release scope because of the unresolved concurrent
+foreign-key integrity issue. See [known limitations](limitations.md).
 
 ## SQL application profile
 
@@ -79,8 +80,8 @@ the [application workflow](workflow.md).
 
 The [machine-readable inventory](../test/support-matrix.json) maps source files
 and declared case IDs. `make matrix` checks that source inventory and this table
-agree; it does not execute native tests or certify release quality. Status labels
-below preserve the inventory's declared implementation/release boundaries.
+agree. Native tests and release qualification are separate steps. TiDB entries
+below document source capabilities outside the v0.1.1 support scope.
 
 | Capability ID | Current status | Engines |
 | --- | --- | --- |

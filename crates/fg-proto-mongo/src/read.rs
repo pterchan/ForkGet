@@ -203,7 +203,11 @@ pub(crate) fn count_stages(command: &Document) -> Vec<Document> {
 }
 
 /// Driver `distinct` options translated into merged-view stages.
-pub(crate) fn distinct_stages(key: &str, command: &Document) -> Vec<Document> {
+pub(crate) fn distinct_stages(
+    key: &str,
+    command: &Document,
+    size_refusal: &Document,
+) -> Vec<Document> {
     let mut stages = Vec::new();
     let empty = Document::new();
     let query = command.get_document("query").unwrap_or(&empty);
@@ -212,6 +216,14 @@ pub(crate) fn distinct_stages(key: &str, command: &Document) -> Vec<Document> {
     }
     stages.push(doc! { "$group": { "_id": format!("${key}") } });
     stages.push(doc! { "$sort": { "_id": 1i32 } });
+    stages.push(doc! { "$group": { "_id": null, "values": { "$push": "$_id" } } });
+    stages.push(doc! { "$project": { "_id": 0, "values": 1, "ok": { "$literal": 1.0 } } });
+    // MongoDB allows serialization overhead for aggregation replies. Enforce
+    // the advertised BSON limit on the exact document returned to the driver.
+    stages.push(doc! { "$replaceWith": { "$cond": [
+        { "$lte": [{ "$bsonSize": "$$ROOT" }, crate::MAX_BSON_OBJECT_SIZE] },
+        "$$ROOT", { "$literal": size_refusal.clone() }
+    ] } });
     stages
 }
 

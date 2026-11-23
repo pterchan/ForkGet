@@ -38,10 +38,13 @@ const DEFAULT_REFRESH_COOLDOWN_SECONDS: u32 = 86_400;
 const CONTROL_LISTEN: &str = "127.0.0.1:8081";
 const PROXY_URL: &str = "http://127.0.0.1:8082";
 const COMMANDS: &str = "command: migrate, bootstrap, refresh --snapshot v2|v3, \
-    refresh --gate-orders <count>, retire --generation <id>, or serve";
+    refresh --gate-orders <count>, retire --generation <id>, snapshot <subcommand>, \
+    audit <subcommand>, doctor, status --json, serve, --revision";
 
 #[derive(Debug, Error)]
 enum ControlError {
+    #[error(transparent)]
+    UnsupportedTidb(#[from] fg_protocol_common::UnsupportedTidbBackend),
     #[error(transparent)]
     Ddl(#[from] native::DdlError),
     #[error(transparent)]
@@ -112,6 +115,10 @@ async fn run() -> Result<(), ControlError> {
         return Err(ControlError::Config(COMMANDS));
     }
     match (command.as_deref(), flag.as_deref(), value.as_deref()) {
+        (Some("-h" | "--help"), None, None) => {
+            println!("Usage: fg-control <command>\n{COMMANDS}");
+            Ok(())
+        }
         (Some("doctor"), None, None) => diagnostics::doctor().await,
         (Some("status"), Some("--json"), None) => diagnostics::status().await,
         (Some("--revision"), None, None) => {
@@ -314,6 +321,11 @@ async fn serve() -> Result<(), ControlError> {
         return Err(ControlError::Config(
             "FG_BACKEND_GC_DSN must use the dedicated native GC role",
         ));
+    }
+    if !fg_protocol_common::TIDB_BACKEND_AVAILABLE && options.engine() == Engine::MySql {
+        tokio::time::timeout(std::time::Duration::from_secs(5), options.connect())
+            .await
+            .map_err(|_| ControlError::NativeTimeout)??;
     }
     let address: SocketAddr = setting("FG_CONTROL_LISTEN", CONTROL_LISTEN)
         .parse()

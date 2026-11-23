@@ -1,5 +1,7 @@
 # Storage and permission model
 
+English · [简体中文](architecture.zh-CN.md)
+
 A deployment contains one database proxy, a control service, metadata PostgreSQL
 and one dedicated native serving engine. The source database is a separate input.
 Applications use native protocol and TLS; owners use the loopback control API,

@@ -12,7 +12,7 @@ path = "src/main.rs"
 
 [dependencies]
 clap.workspace = true
-fg-protocol-common = { path = "../fg-protocol-common", default-features = false, features = ["routing"] }
+fg-protocol-common = { workspace = true, features = ["routing"] }
 fg-rewrite = { path = "../fg-rewrite" }
 rand.workspace = true
 reqwest = { workspace = true, features = ["stream"] }

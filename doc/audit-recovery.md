@@ -1,5 +1,7 @@
 # Durable audit, upgrades and storage restore
 
+English · [简体中文](audit-recovery.zh-CN.md)
+
 Protected writes use a durable attempt identity. SQL work in one native
 transaction shares an attempt, including savepoints. MongoDB uses one attempt
 per admitted write command. The audit journal stores safe identity, policy,
@@ -65,8 +67,7 @@ silently rebuilds a missing or mismatched ready witness.
 
 MySQL's dedicated branch administrator needs scoped TRIGGER visibility on its
 existing write namespaces; service and collector accounts do not. An empty
-trigger listing under an unprivileged account is not absence proof. TiDB uses
-its separate privilege profile and requires native metadata locking. Witness
+trigger listing under an unprivileged account is not absence proof. Witness
 collection acquires its own native lock before administrator attestation and
 keeps it until commit. Metadata records collection only after native COMMIT
 acknowledgement. See [serving roles](../deploy/README.md).

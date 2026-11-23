@@ -1,5 +1,7 @@
 # Source backup accounts
 
+English · [简体中文](source-backup-roles.zh-CN.md)
+
 Use an independent source account for `FG_SOURCE_DSN`. Keep
 `FG_BACKEND_ADMIN_DSN`, the serving account and the collector account separate.
 The source account captures the application's logical schema; the target
@@ -12,8 +14,8 @@ smallest possible grant set for every configuration. Acceptance uses MySQL
 8.0.43 with MySQL Shell **8.0.36**, and PostgreSQL **16.14** with
 `pg_dump`/`pg_restore` **16.15**. Requalify the recipe when changing native tool
 versions, role activation settings or hardened system-catalog permissions.
-TiDB and MongoDB have separate native import workflows; their backup-role
-profiles are **not verified by this acceptance**.
+MongoDB has a separate native import workflow. Its backup-role profile is
+**not verified by this acceptance**.
 
 ## MySQL 8.0
 

@@ -1,5 +1,11 @@
 # Local SQL deployment
 
+English · [简体中文](README.zh-CN.md)
+
+Use the deployment template that accompanies your chosen release. For
+prerelease evaluation, use dedicated, disposable data. Read the release page
+and [known limitations](../doc/limitations.md) before selecting an engine.
+
 This Compose template runs control, proxy and metadata PostgreSQL against one
 separately configured SQL serving backend. Use Linux or a WSL Linux Docker
 Engine. Host networking keeps metadata on 15432, control/drain on 8081/8082,
@@ -32,6 +38,11 @@ Keep frontend passwords, API tokens and native credentials separate. URL-encode
 reserved password characters in DSNs. Do not print `docker compose config` or
 copy settings, keys or captures into diagnostics. The standard operator commands
 supply administration credentials only to transient containers.
+
+Set `FG_NATIVE_FREE_BYTES` in `deploy/operator.env` to forward a current
+native free-space estimate in bytes to control and the snapshot operator.
+An empty or omitted setting leaves native capacity estimated. A numeric zero
+reports no available bytes and refuses allocations that require space.
 
 ## PostgreSQL serving accounts
 
@@ -79,10 +90,6 @@ The native administrator uses a database accessible to it. MySQL's scoped
 TRIGGER privilege lets the branch administrator attest that private witnesses
 have no triggers. Do not add that privilege to service or collector accounts.
 Legacy deployments also need it on their already-owned branch namespaces.
-
-TiDB does not support the MySQL TRIGGER or partial-revokes recipe. Its separate
-native profile requires CHECK enforcement and metadata locking. Its unresolved
-concurrent foreign-key failure remains a [correctness limitation](../doc/limitations.md).
 
 ## Lifecycle and retained data
 

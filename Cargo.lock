@@ -721,7 +721,7 @@ checksum = "da7c62ceae207dd37ea5b845da6a0696c799f85e97da1ab5b7910be3c1c80223"
 
 [[package]]
 name = "fg-cli"
-version = "0.1.0-rc.1"
+version = "0.1.1"
 dependencies = [
  "clap",
  "fg-protocol-common",
@@ -739,7 +739,7 @@ dependencies = [
 
 [[package]]
 name = "fg-control"
-version = "0.1.0-rc.1"
+version = "0.1.1"
 dependencies = [
  "axum",
  "base64 0.22.1",
@@ -768,7 +768,7 @@ dependencies = [
 
 [[package]]
 name = "fg-diff"
-version = "0.1.0-rc.1"
+version = "0.1.1"
 dependencies = [
  "bson",
  "clap",
@@ -784,7 +784,7 @@ dependencies = [
 
 [[package]]
 name = "fg-matrix"
-version = "0.1.0-rc.1"
+version = "0.1.1"
 dependencies = [
  "clap",
  "serde",
@@ -795,7 +795,7 @@ dependencies = [
 
 [[package]]
 name = "fg-meta"
-version = "0.1.0-rc.1"
+version = "0.1.1"
 dependencies = [
  "fg-protocol-common",
  "serde",
@@ -808,7 +808,7 @@ dependencies = [
 
 [[package]]
 name = "fg-proto-mongo"
-version = "0.1.0-rc.1"
+version = "0.1.1"
 dependencies = [
  "axum",
  "base64 0.22.1",
@@ -828,7 +828,7 @@ dependencies = [
 
 [[package]]
 name = "fg-proto-mysql"
-version = "0.1.0-rc.1"
+version = "0.1.1"
 dependencies = [
  "fg-protocol-common",
  "fg-rewrite",
@@ -842,7 +842,7 @@ dependencies = [
 
 [[package]]
 name = "fg-proto-pg"
-version = "0.1.0-rc.1"
+version = "0.1.1"
 dependencies = [
  "base64 0.22.1",
  "fg-protocol-common",
@@ -859,7 +859,7 @@ dependencies = [
 
 [[package]]
 name = "fg-protocol-common"
-version = "0.1.0-rc.1"
+version = "0.1.1"
 dependencies = [
  "base64 0.22.1",
  "bson",
@@ -877,7 +877,7 @@ dependencies = [
 
 [[package]]
 name = "fg-protocol-fixture"
-version = "0.1.0-rc.1"
+version = "0.1.1"
 dependencies = [
  "fg-proto-mongo",
  "fg-proto-mysql",
@@ -893,7 +893,7 @@ dependencies = [
 
 [[package]]
 name = "fg-proxy"
-version = "0.1.0-rc.1"
+version = "0.1.1"
 dependencies = [
  "axum",
  "fg-proto-mongo",
@@ -920,7 +920,7 @@ dependencies = [
 
 [[package]]
 name = "fg-rewrite"
-version = "0.1.0-rc.1"
+version = "0.1.1"
 dependencies = [
  "fg-protocol-common",
  "serde",
