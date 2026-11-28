@@ -2,6 +2,8 @@
 
 [English](README.md) · 简体中文
 
+[![2026-11-13 起的克隆次数](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fpterchan%2FForkGet%2Ftraffic-stats%2Fbadge.json)](https://github.com/pterchan/ForkGet)
+
 为应用和智能体提供可随时丢弃的数据库工作区。
 
 ![Forkget 漫画：创建分支、测试、比较、丢弃](doc/assets/intro-comic.svg)

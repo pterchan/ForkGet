@@ -2,6 +2,8 @@
 
 English · [简体中文](README.zh-CN.md)
 
+[![Clones since 2026-11-13](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fpterchan%2FForkGet%2Ftraffic-stats%2Fbadge.json)](https://github.com/pterchan/ForkGet)
+
 Disposable database workspaces for applications and agents.
 
 ![Forkget comic: fork, test, diff, discard](doc/assets/intro-comic.svg)
