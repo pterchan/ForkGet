@@ -1,0 +1,65 @@
+{
+  "daily": [
+    {
+      "count": 0,
+      "date": "2026-11-13"
+    },
+    {
+      "count": 92,
+      "date": "2026-11-14"
+    },
+    {
+      "count": 204,
+      "date": "2026-11-15"
+    },
+    {
+      "count": 1,
+      "date": "2026-11-16"
+    },
+    {
+      "count": 4,
+      "date": "2026-11-17"
+    },
+    {
+      "count": 2,
+      "date": "2026-11-18"
+    },
+    {
+      "count": 0,
+      "date": "2026-11-19"
+    },
+    {
+      "count": 0,
+      "date": "2026-11-20"
+    },
+    {
+      "count": 1,
+      "date": "2026-11-21"
+    },
+    {
+      "count": 3,
+      "date": "2026-11-22"
+    },
+    {
+      "count": 4,
+      "date": "2026-11-23"
+    },
+    {
+      "count": 49,
+      "date": "2026-11-24"
+    },
+    {
+      "count": 1,
+      "date": "2026-11-25"
+    },
+    {
+      "count": 1,
+      "date": "2026-11-26"
+    }
+  ],
+  "repository": "pterchan/ForkGet",
+  "schema_version": 1,
+  "through": "2026-11-26",
+  "total_clones": 362,
+  "tracking_since": "2026-11-13"
+}
